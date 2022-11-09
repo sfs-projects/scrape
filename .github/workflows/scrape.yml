@@ -3,7 +3,9 @@ name: price-scraper-notifier
 on:
   schedule:
     - cron: '0,20,40 * * * *' # runs At minute 0 past hour 8, 14, and 20.
-
+  push:
+    branches:
+      - main
 jobs:
   build:
     runs-on: ubuntu-latest
