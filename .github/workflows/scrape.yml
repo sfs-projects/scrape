@@ -20,7 +20,7 @@ jobs:
       - name: install python packages
         run: |
           python -m pip install --upgrade pip
-          pip install -r /price-scraper-notifier/requirements.txt
+          pip install -r price-scraper-notifier/requirements.txt
           
       - name: execute py script # run main.py to get the latest data
         env: 
@@ -28,7 +28,7 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
-        run: python /price-scraper-notifier/main.py
+        run: python price-scraper-notifier/main.py
 
       - name: commit files
         run: |
