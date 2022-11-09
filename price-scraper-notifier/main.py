@@ -74,31 +74,39 @@ def time_now():
 def get_tags(settings_df, sitecode):
     for row in settings_df.itertuples(index=True):
         if row.sitecode == sitecode:
-            x_pn = row.product_name.split(",")[0].strip()
-            y_pn = row.product_name.split(",")[1].strip()
-            pn = {x_pn: y_pn}
-            # print(pn)
+            try:
+                x_pn = row.product_name.split(",")[0].strip()
+                y_pn = row.product_name.split(",")[1].strip()
+                pn = {x_pn: y_pn}
+            except:
+                pn = None
 
     for row in settings_df.itertuples(index=True):
         if row.sitecode == sitecode:
-            x_c = row.code.split(",")[0].strip()
-            y_c = row.code.split(",")[1].strip()
-            c = {x_c: y_c}
-            # print(c)
+            try:
+                x_c = row.code.split(",")[0].strip()
+                y_c = row.code.split(",")[1].strip()
+                c = {x_c: y_c}
+            except:
+                c = None
 
     for row in settings_df.itertuples(index=True):
         if row.sitecode == sitecode:
-            x_pr = row.price.split(",")[0].strip()
-            y_pr = row.price.split(",")[1].strip()
-            pr = {x_pr: y_pr}
-            # print(pr)
+            try:
+                x_pr = row.price.split(",")[0].strip()
+                y_pr = row.price.split(",")[1].strip()
+                pr = {x_pr: y_pr}
+            except:
+                pr = None
 
     for row in settings_df.itertuples(index=True):
         if row.sitecode == sitecode:
-            x_st = row.stock.split(",")[0].strip()
-            y_st = row.stock.split(",")[1].strip()
-            st = {x_st: y_st}
-            # print(st)
+            try:
+                x_st = row.stock.split(",")[0].strip()
+                y_st = row.stock.split(",")[1].strip()
+                st = {x_st: y_st}
+            except:
+                st = None
     return pn, c, pr, st
 
 
@@ -106,6 +114,11 @@ urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 
 product_list = pd.DataFrame()
+
+import nest_asyncio
+
+nest_asyncio.apply()
+# https://stackoverflow.com/questions/55409641/asyncio-run-cannot-be-called-from-a-running-event-loop-when-using-jupyter-no
 
 
 async def save_rows(sitecode, product_name, code, price, stock, date, url):
@@ -125,54 +138,71 @@ async def save_rows(sitecode, product_name, code, price, stock, date, url):
 
 async def scrape(url, header):
     async with aiohttp.ClientSession(headers=get_random_header()) as session:
-        async with session.get(url) as response:
-            # print("Status", response.status)
-            for row in urls_df.itertuples():
-                if row.url == url:
-                    sitecode = row.sitecode
-                    date = time_now()
-                    pn, c, pr, st = get_tags(settings_df, sitecode)
-                    if response.status == 200:
-                        body = await response.text()
-                        soup = BeautifulSoup(body, "html.parser")
+        try:
+            async with session.get(url) as response:
+                # print("Status", response.status)
+                for row in urls_df.itertuples():
+                    if row.url == url:
+                        sitecode = row.sitecode
+                        date = time_now()
+                        pn, c, pr, st = get_tags(settings_df, sitecode)
+                        if response.status == 200:
+                            body = await response.text()
+                            soup = BeautifulSoup(body, "html.parser")
 
-                        product_name = soup.find(**pn).text.strip()
+                            product_name = soup.find(**pn).text.strip()
 
-                        if sitecode == 2:
-                            code = soup.find(**c).split("/")[-1].text.strip()
+                            try:
+                                if sitecode == 2:
+                                    code = soup.find(**c).split("/")[-1].text.strip()
+                                else:
+                                    code = soup.find(**c).text.strip()
+                            except:
+                                code = ""
+                                print("Code missing", code, url)
+
+                            try:
+                                price_init = soup.find(**pr)
+
+                                if any(sitecode == item for item in [1]):
+                                    price = price_init.next_element.replace(
+                                        ".", ""
+                                    ).strip()
+                                    price = float(price)
+                                elif any(sitecode == item for item in [3]):
+                                    price = price_init.next_element.text.strip()[:-6]
+                                    price = float(price)
+                                else:
+                                    price = (
+                                        price_init.text.strip()[:-4]
+                                        .replace(".", "")
+                                        .replace(",", ".")
+                                        .strip()
+                                    )
+                                    price = float(price)
+                            except:
+                                price = 0.000001
+                                price = float(price)
+                                print("Price missing", price_init, url)
+
+                            try:
+                                stock = soup.find(**st).text.strip()
+                            except:
+                                stock = ""
+                                print("Stock missing", stock, url)
+
                         else:
-                            code = soup.find(**c).text.strip()
+                            pass
+                            product_name, code, price, stock = None
+                            print(
+                                "Request failed with status code:", response.status, url
+                            )
 
-                        try:
-                            price_init = soup.find(**pr)
-
-                            if sitecode == 1:
-                                price = price_init.next_element.replace(".", "").strip()
-                                price = float(price)
-
-                            else:
-                                price = (
-                                    price_init.text.strip()
-                                    .replace(" RON", "")
-                                    .replace(".", "")
-                                    .replace(",", ".")
-                                    .strip()
-                                )
-                                price = float(price)
-                        except:
-                            price = ""
-                            print(price_init, url)
-
-                        stock = soup.find(**st).text.strip()
-
-                    else:
-                        pass
-                        product_name, code, price, stock = None
-                        print("Request failed with status code:", response.status, url)
-
-                    await save_rows(
-                        sitecode, product_name, code, price, stock, date, url
-                    )
+                        await save_rows(
+                            sitecode, product_name, code, price, stock, date, url
+                        )
+        except Exception as e:
+            print(e, url)
 
 
 async def main():
@@ -195,57 +225,41 @@ loop.run_until_complete(main())
 
 
 def send_df_to_sheets(dataframe):
-    dataframe = dataframe.astype(
-        {
-            "Sitecode": "int",
-            "Product name": "string",
-            "Code": "string",
-            "Price": "float64",
-            "Stock": "string",
-            "URL": "string",
-        }
-    )
+    dataframe = format_df(dataframe)
     df_values = dataframe.values.tolist()
     sheet.values_append("raw", {"valueInputOption": "RAW"}, {"values": df_values})
     print("Values appended to sheet")
 
 
-send_df_to_sheets(product_list)
+def get_raw_df():
+    raw_sheet = sheet.worksheet("raw")
+    raw_get = raw_sheet.get_all_values()
+    raw_df = pd.DataFrame(
+        raw_get,
+        columns=["Sitecode", "Product name", "Code", "Price", "Stock", "Date", "URL"],
+    )
+    raw_df = raw_df[1:]
+    raw_df.reset_index(drop=True, inplace=True)
 
-raw_sheet = sheet.worksheet("raw")
-raw_get = raw_sheet.get_all_values()
-raw_df = pd.DataFrame(
-    raw_get,
-    columns=["Sitecode", "Product name", "Code", "Price", "Stock", "Date", "URL"],
-)
-raw_df = raw_df[1:]
-raw_df.reset_index(drop=True, inplace=True)
+    raw_df = format_df(raw_df)
+    raw_df["Date"] = pd.to_datetime(raw_df["Date"])
+    return raw_df
 
 
-raw_df = raw_df.astype(
-    {
-        "Sitecode": "int",
-        "Product name": "string",
-        "Code": "string",
-        "Price": "float64",
-        "Stock": "string",
-        "URL": "string",
-    }
-)
-raw_df["Date"] = pd.to_datetime(raw_df["Date"])
+def get_current_previous(raw_df):
+    previous_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)[
+        "Date"
+    ].apply(lambda x: x.sort_values(ascending=False).nlargest(2).min())
+    previous_df.reset_index()
 
-recent_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)["Date"].apply(
-    lambda x: x.sort_values(ascending=False).nlargest(2).min()
-)
-recent_df.reset_index()
+    now_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)["Date"].apply(
+        lambda x: x.sort_values(ascending=False).nlargest(1).min()
+    )
+    now_df.reset_index()
 
-now_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)["Date"].apply(
-    lambda x: x.sort_values(ascending=False).nlargest(1).min()
-)
-now_df.reset_index()
-
-previous_df = recent_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
-now_dff = now_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
+    previous_df = previous_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
+    now_df = now_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
+    return now_df, previous_df
 
 
 def send_to_telegram(message):
@@ -266,30 +280,45 @@ def send_to_telegram(message):
             response = e
 
 
+send_df_to_sheets(product_list)  ## send current scraped data to sheets
+
 th_sheet = sheet.worksheet("thresholds")
 THRESHOLD = float(th_sheet.acell("A2").value)
 
-for prev in previous_df.itertuples():
-    # print(prev)
-    for now in now_dff.itertuples():
-        if (
-            now.Code == prev.Code
-            and now.Sitecode == prev.Sitecode
-            and now.URL == prev.URL
-        ):
-            diff = int(now.Price - prev.Price)
-            diffpc = float(now.Price / prev.Price - 1)
-            diffpc_str = str(round(diffpc * 100, 2)) + str("%")
-            if abs(diffpc) >= THRESHOLD:
-                print(f"Difference higher than {THRESHOLD*100}% found:")
-                if diff > 0:
-                    alert_message = f"[{diff}] [{now.Stock}] Price increased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}"
-                    print(alert_message)
-                    send_to_telegram(alert_message)
-                elif diff < 0:
-                    alert_message = f"[{diff}] [{now.Stock}] Price decreased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}"
-                    print(alert_message)
-                    send_to_telegram(alert_message)
-                else:
-                    alert_message = None
-                    print(alert_message)
+th_sheet = sheet.worksheet("thresholds")
+THRESHOLD = float(th_sheet.acell("A2").value)
+
+
+def process_alerts():
+    raw_df = get_raw_df()  ## read all data
+    now_df, previous_df = get_current_previous(
+        raw_df
+    )  ## grab current and previous data to compare
+    for prev in previous_df.itertuples():
+        for now in now_df.itertuples():
+            if (
+                now.Code == prev.Code
+                and now.Sitecode == prev.Sitecode
+                and now.URL == prev.URL
+            ):
+                diff = int(now.Price - prev.Price)
+                diffpc = float(now.Price / prev.Price - 1)
+                diffpc_str = str(round(diffpc * 100, 2)) + str("%")
+                if abs(diffpc) >= THRESHOLD:
+                    print(f"Difference higher than {THRESHOLD*100}% found.")
+                    if diff > 0:
+                        alert_message = f"[{diff}] [{now.Stock}] Price increased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}"
+                        print(alert_message)
+                        send_to_telegram(alert_message)
+                    elif diff < 0:
+                        alert_message = f"[{diff}] [{now.Stock}] Price decreased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}"
+                        print(alert_message)
+                        send_to_telegram(alert_message)
+                    else:
+                        alert_message = None
+                        print(alert_message)
+    print("Finished.")
+
+
+if __name__ == "__main__":
+    process_alerts()
