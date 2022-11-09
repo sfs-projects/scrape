@@ -219,6 +219,20 @@ loop = asyncio.get_event_loop()
 loop.run_until_complete(main())
 
 
+def format_df(dataframe):
+    dataframe = dataframe.astype(
+        {
+            "Sitecode": "int",
+            "Product name": "string",
+            "Code": "string",
+            "Price": "float64",
+            "Stock": "string",
+            "URL": "string",
+        }
+    )
+    return dataframe
+
+
 def send_df_to_sheets(dataframe):
     dataframe = format_df(dataframe)
     df_values = dataframe.values.tolist()
