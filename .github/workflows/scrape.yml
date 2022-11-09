@@ -2,7 +2,7 @@ name: price-scraper-notifier
 
 on:
   schedule:
-    - cron: '0 8,14,20 * * * # runs “At minute 0 past hour 8, 14, and 20.”
+    - cron: '0 8,14,20 * * *' # runs At minute 0 past hour 8, 14, and 20.
 
 jobs:
   build:
