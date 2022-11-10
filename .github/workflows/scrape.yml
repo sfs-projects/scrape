@@ -2,7 +2,8 @@ name: price-scraper-notifier
 
 on:
   schedule:
-    - cron: '* 7,13,19 * * *' # runs At minute 0 past hour 8, 14, and 20.
+    - cron: '0 6-23/3 * * *' # runs “At minute 0 past every 3rd hour from 6 through 23.”
+    
   push:
     branches:
       - main
