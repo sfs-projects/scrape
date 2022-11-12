@@ -7,6 +7,7 @@ import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
+import re
 import gspread
 import pandas as pd
 from datetime import datetime
@@ -75,43 +76,17 @@ def get_tags(settings_df, sitecode):
     for row in settings_df.itertuples(index=True):
         if row.sitecode == sitecode:
             try:
-                x_pn = row.product_name.split(",")[0].strip()
-                y_pn = row.product_name.split(",")[1].strip()
-                pn = {x_pn: y_pn}
+                pn_string = row.product_name.strip()
+                c_string = row.code.strip()
+                pr_string = row.price.strip()
+                st_string = row.stock.strip()
             except:
-                pn = None
+                pn_string, c_string, pr_string, st_string = None
 
-    for row in settings_df.itertuples(index=True):
-        if row.sitecode == sitecode:
-            try:
-                x_c = row.code.split(",")[0].strip()
-                y_c = row.code.split(",")[1].strip()
-                c = {x_c: y_c}
-            except:
-                c = None
-
-    for row in settings_df.itertuples(index=True):
-        if row.sitecode == sitecode:
-            try:
-                x_pr = row.price.split(",")[0].strip()
-                y_pr = row.price.split(",")[1].strip()
-                pr = {x_pr: y_pr}
-            except:
-                pr = None
-
-    for row in settings_df.itertuples(index=True):
-        if row.sitecode == sitecode:
-            try:
-                x_st = row.stock.split(",")[0].strip()
-                y_st = row.stock.split(",")[1].strip()
-                st = {x_st: y_st}
-            except:
-                st = None
-    return pn, c, pr, st
+    return pn_string, c_string, pr_string, st_string
 
 
 urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
-
 
 product_list = pd.DataFrame()
 
@@ -132,56 +107,67 @@ async def save_rows(sitecode, product_name, code, price, stock, date, url):
 
 
 async def scrape(url, header):
-    async with aiohttp.ClientSession(headers=get_random_header()) as session:
+    async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url) as response:
-                # print("Status", response.status)
+            async with session.get(url, timeout=10, headers=header) as response:
+                #                 print(response.status, url, header)
                 for row in urls_df.itertuples():
                     if row.url == url:
                         sitecode = row.sitecode
                         date = time_now()
-                        pn, c, pr, st = get_tags(settings_df, sitecode)
+                        pn_string, c_string, pr_string, st_string = get_tags(
+                            settings_df, sitecode
+                        )
                         if response.status == 200:
                             body = await response.text()
                             soup = BeautifulSoup(body, "html.parser")
 
-                            product_name = soup.find(**pn).text.strip()
+                            try:
+                                product_name = soup.find(
+                                    class_=re.compile(pn_string)
+                                ).next_element.text.strip()
+                            except:
+                                product_name = ""
+                                print("Product name missing", product_name, url)
 
                             try:
-                                if sitecode == 2:
-                                    code = soup.find(**c).split("/")[-1].text.strip()
+                                if any(sitecode == item for item in [0, 2]):
+                                    code = soup.find(
+                                        class_=re.compile(c_string)
+                                    ).text.strip()
                                 else:
-                                    code = soup.find(**c).text.strip()
+                                    code = soup.find(
+                                        class_=re.compile(c_string)
+                                    ).next_element.text.strip()
                             except:
                                 code = ""
                                 print("Code missing", code, url)
 
                             try:
-                                price_init = soup.find(**pr)
-
-                                if any(sitecode == item for item in [1]):
-                                    price = price_init.next_element.replace(
-                                        ".", ""
-                                    ).strip()
-                                    price = float(price)
-                                elif any(sitecode == item for item in [3]):
-                                    price = price_init.next_element.text.strip()[:-6]
-                                    price = float(price)
-                                else:
-                                    price = (
-                                        price_init.text.strip()[:-4]
-                                        .replace(".", "")
-                                        .replace(",", ".")
-                                        .strip()
-                                    )
-                                    price = float(price)
+                                price_init = soup.find(class_=re.compile(pr_string))
+                                price = (
+                                    price_init.next_element.replace("RON", "")
+                                    .replace(".", "")
+                                    .replace(",", ".")
+                                    .strip()
+                                )
+                                price = float(price)
                             except:
                                 price = 0.000001
                                 price = float(price)
-                                print("Price missing", price_init, url)
+                                print(
+                                    "Price missing", price_init, type(price_init), url
+                                )
 
                             try:
-                                stock = soup.find(**st).text.strip()
+                                if any(sitecode == item for item in [0, 2]):
+                                    stock = soup.find(
+                                        class_=re.compile(st_string)
+                                    ).text.strip()
+                                else:
+                                    stock = soup.find(
+                                        class_=re.compile(st_string)
+                                    ).next_element.text.strip()
                             except:
                                 stock = ""
                                 print("Stock missing", stock, url)
@@ -205,7 +191,8 @@ async def main():
 
     tasks = []
     for url in urls_list:
-        task = asyncio.create_task(scrape(url, get_random_header()))
+        header = get_random_header()
+        task = asyncio.create_task(scrape(url, header))
         tasks.append(task)
 
     print("Saving the output of extracted information")
@@ -290,9 +277,6 @@ def send_to_telegram(message):
 
 
 send_df_to_sheets(product_list)  ## send current scraped data to sheets
-
-th_sheet = sheet.worksheet("thresholds")
-THRESHOLD = float(th_sheet.acell("A2").value)
 
 th_sheet = sheet.worksheet("thresholds")
 THRESHOLD = float(th_sheet.acell("A2").value)
