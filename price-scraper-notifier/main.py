@@ -16,11 +16,14 @@ import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
 
+
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
+GOOGLE_CREDS = ast.literal_eval(
+    GOOGLE_CREDS.replace("\n", "\\n")
+)  # .replace("\n","\\n")
 
 
 def auth_sheet_and_get_settings():
