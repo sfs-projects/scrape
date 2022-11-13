@@ -112,7 +112,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
 async def scrape(url, header):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, timeout=15, headers=header) as response:
+            async with session.get(url, timeout=25, headers=header) as response:
                 #                 print(response.status, url, header)
                 for row in urls_df.itertuples():
                     if row.url == url:
@@ -206,8 +206,8 @@ async def scrape(url, header):
                         await save_items(
                             sitecode, product_name, code, price, stock, date, url
                         )
-        except TimeoutError as e:
-            print("Timeout error", e, url)
+        except Exception as e:
+            print("Error", e, url)
 
 
 async def main():
@@ -301,10 +301,12 @@ def send_to_telegram(message):
 
 
 def get_checker_perc():
-    checker_perc = len(product_list.index) / len(urls_list)
-    checker_perc = str(round(checker_perc * 100, 2)) + str("%")
+    len_p = len(product_list.index)
+    len_c = len(urls_list)
+    checker_perc = len_p / len_c
+    checker_perc = str(round(checker_perc*100,2)) + str("%")
     if checker_perc != "100.0%":
-        log_message = f"Possible errors. Only {checker_perc} of urls were checked."
+        log_message = f"Possible errors. Only {checker_perc} of urls were checked. [{len_p}/{len_c}]"
         send_to_telegram(log_message)
     return checker_perc
 
