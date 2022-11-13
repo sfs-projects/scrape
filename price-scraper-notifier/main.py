@@ -90,11 +90,6 @@ urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 product_list = pd.DataFrame()
 
-import nest_asyncio
-
-nest_asyncio.apply()
-# https://stackoverflow.com/questions/55409641/asyncio-run-cannot-be-called-from-a-running-event-loop-when-using-jupyter-no
-
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
     global product_list
