@@ -90,8 +90,13 @@ urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 product_list = pd.DataFrame()
 
+import nest_asyncio
 
-async def save_rows(sitecode, product_name, code, price, stock, date, url):
+nest_asyncio.apply()
+# https://stackoverflow.com/questions/55409641/asyncio-run-cannot-be-called-from-a-running-event-loop-when-using-jupyter-no
+
+
+async def save_items(sitecode, product_name, code, price, stock, date, url):
     global product_list
     items = {
         "Sitecode": sitecode,
@@ -109,7 +114,7 @@ async def save_rows(sitecode, product_name, code, price, stock, date, url):
 async def scrape(url, header):
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(url, timeout=10, headers=header) as response:
+            async with session.get(url, timeout=15, headers=header) as response:
                 #                 print(response.status, url, header)
                 for row in urls_df.itertuples():
                     if row.url == url:
@@ -123,9 +128,14 @@ async def scrape(url, header):
                             soup = BeautifulSoup(body, "html.parser")
 
                             try:
-                                product_name = soup.find(
-                                    class_=re.compile(pn_string)
-                                ).next_element.text.strip()
+                                if sitecode == 4:
+                                    product_name = soup.find(
+                                        class_=re.compile(pn_string)
+                                    ).text.strip()
+                                else:
+                                    product_name = soup.find(
+                                        class_=re.compile(pn_string)
+                                    ).next_element.text.strip()
                             except:
                                 product_name = ""
                                 print("Product name missing", product_name, url)
@@ -135,6 +145,12 @@ async def scrape(url, header):
                                     code = soup.find(
                                         class_=re.compile(c_string)
                                     ).text.strip()
+                                elif any(sitecode == item for item in [3, 4]):
+                                    code = (
+                                        soup.find(class_=re.compile(c_string))
+                                        .find("span")
+                                        .next_element.text.strip()
+                                    )
                                 else:
                                     code = soup.find(
                                         class_=re.compile(c_string)
@@ -161,13 +177,23 @@ async def scrape(url, header):
 
                             try:
                                 if any(sitecode == item for item in [0, 2]):
-                                    stock = soup.find(
-                                        class_=re.compile(st_string)
-                                    ).text.strip()
+                                    stock = (
+                                        soup.find(class_=re.compile(st_string))
+                                        .text.replace("\n", "")
+                                        .strip()
+                                    )
+                                elif any(sitecode == item for item in [3, 4]):
+                                    stock = (
+                                        soup.find(class_=re.compile(st_string))
+                                        .find("span")
+                                        .next_element.text.strip()
+                                    )
                                 else:
-                                    stock = soup.find(
-                                        class_=re.compile(st_string)
-                                    ).next_element.text.strip()
+                                    stock = (
+                                        soup.find(class_=re.compile(st_string))
+                                        .next_element.text.replace("\n", "")
+                                        .strip()
+                                    )
                             except:
                                 stock = ""
                                 print("Stock missing", stock, url)
@@ -179,11 +205,11 @@ async def scrape(url, header):
                                 "Request failed with status code:", response.status, url
                             )
 
-                        await save_rows(
+                        await save_items(
                             sitecode, product_name, code, price, stock, date, url
                         )
-        except Exception as e:
-            print(e, url)
+        except TimeoutError as e:
+            print("Timeout error", e, url)
 
 
 async def main():
@@ -276,6 +302,15 @@ def send_to_telegram(message):
             response = e
 
 
+def get_checker_perc():
+    checker_perc = len(product_list.index) / len(urls_list)
+    checker_perc = str(round(checker_perc * 100, 2)) + str("%")
+    if checker_perc != "100.0%":
+        log_message = f"Possible errors. Only {checker_perc} of urls were checked."
+        send_to_telegram(log_message)
+    return checker_perc
+
+
 send_df_to_sheets(product_list)  ## send current scraped data to sheets
 
 th_sheet = sheet.worksheet("thresholds")
@@ -310,7 +345,8 @@ def process_alerts():
                     else:
                         alert_message = None
                         print(alert_message)
-    print("Finished.")
+    checker_perc = get_checker_perc()
+    print(f"Finished, checked {checker_perc} of urls.")
 
 
 if __name__ == "__main__":
