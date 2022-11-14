@@ -109,10 +109,26 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     product_list = pd.concat([product_list, items_df], ignore_index=True)
 
 
-async def scrape(url, header):
-    async with aiohttp.ClientSession() as session:
+async def save_items(sitecode, product_name, code, price, stock, date, url):
+    global product_list
+    items = {
+        "Sitecode": sitecode,
+        "Product name": product_name,
+        "Code": code,
+        "Price": price,
+        "Stock": stock,
+        "Date": date,
+        "URL": url,
+    }
+    items_df = pd.DataFrame([items])
+    product_list = pd.concat([product_list, items_df], ignore_index=True)
+
+
+async def scrape(url):
+    header = get_random_header()
+    async with aiohttp.ClientSession(headers=header) as session:
         try:
-            async with session.get(url, timeout=25, headers=header) as response:
+            async with session.get(url, timeout=25) as response:
                 #                 print(response.status, url, header)
                 for row in urls_df.itertuples():
                     if row.url == url:
@@ -215,8 +231,8 @@ async def main():
 
     tasks = []
     for url in urls_list:
-        header = get_random_header()
-        task = asyncio.create_task(scrape(url, header))
+
+        task = asyncio.create_task(scrape(url))
         tasks.append(task)
 
     print("Saving the output of extracted information")
@@ -304,7 +320,7 @@ def get_checker_perc():
     len_p = len(product_list.index)
     len_c = len(urls_list)
     checker_perc = len_p / len_c
-    checker_perc = str(round(checker_perc*100,2)) + str("%")
+    checker_perc = str(round(checker_perc * 100, 2)) + str("%")
     if checker_perc != "100.0%":
         log_message = f"Possible errors. Only {checker_perc} of urls were checked. [{len_p}/{len_c}]"
         send_to_telegram(log_message)
