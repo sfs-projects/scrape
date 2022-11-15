@@ -91,22 +91,9 @@ def get_tags(settings_df, sitecode):
 
 urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
+
 product_list = pd.DataFrame()
-
-
-async def save_items(sitecode, product_name, code, price, stock, date, url):
-    global product_list
-    items = {
-        "Sitecode": sitecode,
-        "Product name": product_name,
-        "Code": code,
-        "Price": price,
-        "Stock": stock,
-        "Date": date,
-        "URL": url,
-    }
-    items_df = pd.DataFrame([items])
-    product_list = pd.concat([product_list, items_df], ignore_index=True)
+timeout = 30
 
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
@@ -128,7 +115,7 @@ async def scrape(url):
     header = get_random_header()
     async with aiohttp.ClientSession(headers=header) as session:
         try:
-            async with session.get(url, timeout=25) as response:
+            async with session.get(url, timeout=timeout) as response:
                 #                 print(response.status, url, header)
                 for row in urls_df.itertuples():
                     if row.url == url:
@@ -150,9 +137,9 @@ async def scrape(url):
                                     product_name = soup.find(
                                         class_=re.compile(pn_string)
                                     ).next_element.text.strip()
-                            except:
+                            except Exception as e:
                                 product_name = ""
-                                print("Product name missing", product_name, url)
+                                print("Product name missing", product_name, url, e)
 
                             try:
                                 if any(sitecode == item for item in [0, 2]):
@@ -169,9 +156,9 @@ async def scrape(url):
                                     code = soup.find(
                                         class_=re.compile(c_string)
                                     ).next_element.text.strip()
-                            except:
+                            except Exception as e:
                                 code = ""
-                                print("Code missing", code, url)
+                                print("Code missing", code, url, e)
 
                             try:
                                 price_init = soup.find(class_=re.compile(pr_string))
@@ -182,11 +169,15 @@ async def scrape(url):
                                     .strip()
                                 )
                                 price = float(price)
-                            except:
+                            except Exception as e:
                                 price = 0.000001
                                 price = float(price)
                                 print(
-                                    "Price missing", price_init, type(price_init), url
+                                    "Price missing",
+                                    price_init,
+                                    type(price_init),
+                                    url,
+                                    e,
                                 )
 
                             try:
@@ -208,9 +199,9 @@ async def scrape(url):
                                         .next_element.text.replace("\n", "")
                                         .strip()
                                     )
-                            except:
+                            except Exception as e:
                                 stock = ""
-                                print("Stock missing", stock, url)
+                                print("Stock missing", stock, url, e)
 
                         else:
                             pass
@@ -222,20 +213,18 @@ async def scrape(url):
                         await save_items(
                             sitecode, product_name, code, price, stock, date, url
                         )
-        except Exception as e:
+        except (Exception, BaseException, TimeoutError) as e:
             print("Error", e, url)
 
 
 async def main():
     start_time = time.time()
+    print("Saving the output of extracted information")
 
     tasks = []
     for url in urls_list:
-
         task = asyncio.create_task(scrape(url))
         tasks.append(task)
-
-    print("Saving the output of extracted information")
     await asyncio.gather(*tasks)
 
     time_difference = time.time() - start_time
@@ -320,11 +309,11 @@ def get_checker_perc():
     len_p = len(product_list.index)
     len_c = len(urls_list)
     checker_perc = len_p / len_c
-    checker_perc = str(round(checker_perc * 100, 2)) + str("%")
-    if checker_perc != "100.0%":
-        log_message = f"Possible errors. Only {checker_perc} of urls were checked. [{len_p}/{len_c}]"
+    checker_perc_str = str(round(checker_perc * 100, 2)) + str("%")
+    if checker_perc <= 0.85:
+        log_message = f"Possible errors. Only {checker_perc_str} of urls were checked. [{len_p}/{len_c}]"
         send_to_telegram(log_message)
-    return checker_perc
+    return checker_perc_str
 
 
 send_df_to_sheets(product_list)  ## send current scraped data to sheets
@@ -361,8 +350,8 @@ def process_alerts():
                     else:
                         alert_message = None
                         print(alert_message)
-    checker_perc = get_checker_perc()
-    print(f"Finished, checked {checker_perc} of urls.")
+    checker_perc_str = get_checker_perc()
+    print(f"Finished, checked {checker_perc_str} of urls.")
 
 
 if __name__ == "__main__":
