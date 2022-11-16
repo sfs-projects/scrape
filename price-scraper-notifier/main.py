@@ -275,16 +275,22 @@ def get_current_previous(raw_df):
     previous_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)[
         "Date"
     ].apply(lambda x: x.sort_values(ascending=False).nlargest(2).min())
-    previous_df.reset_index()
+    previous_df = previous_df.reset_index()
 
     now_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)["Date"].apply(
         lambda x: x.sort_values(ascending=False).nlargest(1).min()
     )
-    now_df.reset_index()
+    now_df = now_df.reset_index()
 
     previous_df = previous_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
     now_df = now_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
     return now_df, previous_df
+
+
+def get_min_df(raw_df):
+    min_df = raw_df.groupby(["Sitecode", "Code", "URL"])["Price"].min()
+    min_df = min_df.reset_index()
+    return min_df
 
 
 def send_to_telegram(message):
@@ -327,6 +333,7 @@ def process_alerts():
     now_df, previous_df = get_current_previous(
         raw_df
     )  ## grab current and previous data to compare
+    min_df = get_min_df(raw_df)
     for prev in previous_df.itertuples():
         for now in now_df.itertuples():
             if (
@@ -334,23 +341,30 @@ def process_alerts():
                 and now.Sitecode == prev.Sitecode
                 and now.URL == prev.URL
             ):
-                diff = int(now.Price - prev.Price)
-                diffpc = float(now.Price / prev.Price - 1)
-                diffpc_str = str(round(diffpc * 100, 2)) + str("%")
-                if abs(diffpc) >= THRESHOLD:
-                    print(f"Difference higher than {THRESHOLD*100}% found.")
-                    if diff > 0:
-                        alert_message = f"[{diff}] [{now.Stock}] Price increased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}"
-                        print(alert_message)
-                        send_to_telegram(alert_message)
-                    elif diff < 0:
-                        alert_message = f"[{diff}] [{now.Stock}] Price decreased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}"
-                        print(alert_message)
-                        send_to_telegram(alert_message)
-                    else:
-                        alert_message = None
-                        print(alert_message)
-    checker_perc_str = get_checker_perc()
+                for min_ in min_df.itertuples():
+                    if (
+                        now.Code == min_.Code
+                        and now.Sitecode == min_.Sitecode
+                        and now.URL == min_.URL
+                    ):
+                        minpr = float(min_.Price)
+                        diff = int(now.Price - prev.Price)
+                        diffpc = float(now.Price / prev.Price - 1)
+                        diffpc_str = str(round(diffpc * 100, 2)) + str("%")
+                        if abs(diffpc) >= THRESHOLD:
+                            print(f"Difference higher than {THRESHOLD*100}% found.")
+                            if diff > 0:
+                                alert_message = f"[{diff}] [{now.Stock}] Price increased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}. Minimum price {minpr}."
+                                print(alert_message)
+                                send_to_telegram(alert_message)
+                            elif diff < 0:
+                                alert_message = f"[{diff}] [{now.Stock}] Price decreased to {now.Price} from {prev.Price}, difference of {diffpc_str} {now.URL}. Minimum price {minpr}."
+                                print(alert_message)
+                                send_to_telegram(alert_message)
+                            else:
+                                alert_message = None
+                                print(alert_message)
+            checker_perc_str = get_checker_perc()
     print(f"Finished, checked {checker_perc_str} of urls.")
 
 
