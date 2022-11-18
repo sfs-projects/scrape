@@ -93,7 +93,7 @@ urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 
 product_list = pd.DataFrame()
-timeout = 30
+timeout = 15
 
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
