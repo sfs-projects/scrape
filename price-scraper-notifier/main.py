@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+
 import requests
 import asyncio
 import json
@@ -15,7 +16,6 @@ import random
 import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
-
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -90,7 +90,6 @@ def get_tags(settings_df, sitecode):
 
 
 urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
-
 
 product_list = pd.DataFrame()
 timeout = 15
@@ -214,7 +213,7 @@ async def scrape(url):
                             sitecode, product_name, code, price, stock, date, url
                         )
         except (Exception, BaseException, TimeoutError) as e:
-            print("Error", e, url)
+            print("Error", e, header, url)
 
 
 async def main():
@@ -271,19 +270,17 @@ def get_raw_df():
     return raw_df
 
 
-def get_current_previous(raw_df):
+def get_current_previous(raw_df, product_list):
     previous_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)[
         "Date"
     ].apply(lambda x: x.sort_values(ascending=False).nlargest(2).min())
-    previous_df = previous_df.reset_index()
+    previous_df.reset_index(drop=True, inplace=True)
 
-    now_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)["Date"].apply(
-        lambda x: x.sort_values(ascending=False).nlargest(1).min()
-    )
-    now_df = now_df.reset_index()
+    now_df = format_df(product_list)
+    now_df["Date"] = pd.to_datetime(now_df["Date"])
+    now_df.reset_index(drop=True, inplace=True)
 
     previous_df = previous_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
-    now_df = now_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
     return now_df, previous_df
 
 
@@ -331,7 +328,7 @@ THRESHOLD = float(th_sheet.acell("A2").value)
 def process_alerts():
     raw_df = get_raw_df()  ## read all data
     now_df, previous_df = get_current_previous(
-        raw_df
+        raw_df, product_list
     )  ## grab current and previous data to compare
     min_df = get_min_df(raw_df)
     for prev in previous_df.itertuples():
@@ -364,7 +361,7 @@ def process_alerts():
                             else:
                                 alert_message = None
                                 print(alert_message)
-            checker_perc_str = get_checker_perc()
+    checker_perc_str = get_checker_perc()
     print(f"Finished, checked {checker_perc_str} of urls.")
 
 
