@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
 import requests
 import asyncio
-import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
@@ -23,7 +21,7 @@ SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
 GOOGLE_CREDS = ast.literal_eval(
     GOOGLE_CREDS.replace("\n", "\\n")
-)  # .replace("\n","\\n")
+    )
 
 
 def auth_sheet_and_get_settings():
@@ -115,7 +113,6 @@ async def scrape(url):
     async with aiohttp.ClientSession(headers=header) as session:
         try:
             async with session.get(url, timeout=timeout) as response:
-                #                 print(response.status, url, header)
                 for row in urls_df.itertuples():
                     if row.url == url:
                         sitecode = row.sitecode
@@ -286,7 +283,7 @@ def get_current_previous(raw_df, product_list):
 
 def get_min_df(raw_df):
     raw_df_filter = raw_df.copy()
-    raw_df_filter = raw_df_filter[raw_df_filter['Price'] != '0.000001']
+    raw_df_filter = raw_df_filter[raw_df_filter['Price'] != 0.000001]
     min_df = raw_df_filter.groupby(['Sitecode','Code','URL'])['Price'].min()
     min_df = min_df.reset_index()
     return min_df
