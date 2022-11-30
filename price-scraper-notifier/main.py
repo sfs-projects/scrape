@@ -90,7 +90,7 @@ def get_tags(settings_df, sitecode):
 urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 product_list = pd.DataFrame()
-timeout = 15
+timeout = 30
 
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
@@ -210,7 +210,7 @@ async def scrape(url):
                             sitecode, product_name, code, price, stock, date, url
                         )
         except (Exception, BaseException, TimeoutError) as e:
-            print("Error", e, header, url)
+            print("Error", e, url)
 
 
 async def main():
