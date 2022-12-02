@@ -104,6 +104,8 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     }
     items_df = pd.DataFrame([items])
     product_list = pd.concat([product_list, items_df], ignore_index=True)
+    product_list = product_list[product_list["Price"] != 0.000001]
+    product_list.reset_index(drop=True, inplace=True)
 
 
 async def scrape(url):
@@ -258,6 +260,7 @@ def get_raw_df():
         columns=["Sitecode", "Product name", "Code", "Price", "Stock", "Date", "URL"],
     )
     raw_df = raw_df[1:]
+    raw_df = raw_df[raw_df["Price"] != 0.000001]
     raw_df.reset_index(drop=True, inplace=True)
 
     raw_df = format_df(raw_df)
@@ -280,9 +283,7 @@ def get_current_previous(raw_df, product_list):
 
 
 def get_min_df(raw_df):
-    raw_df_filter = raw_df.copy()
-    raw_df_filter = raw_df_filter[raw_df_filter["Price"] != 0.000001]
-    min_df = raw_df_filter.groupby(["Sitecode", "Code", "URL"])["Price"].min()
+    min_df = raw_df.groupby(["Sitecode", "Code", "URL"])["Price"].min()
     min_df = min_df.reset_index()
     return min_df
 
