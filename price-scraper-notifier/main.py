@@ -19,9 +19,7 @@ API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(
-    GOOGLE_CREDS.replace("\n", "\\n")
-    )
+GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
 
 
 def auth_sheet_and_get_settings():
@@ -263,18 +261,18 @@ def get_raw_df():
     raw_df.reset_index(drop=True, inplace=True)
 
     raw_df = format_df(raw_df)
-    raw_df["Date"] = pd.to_datetime(raw_df["Date"])
+    raw_df["Date"] = pd.to_datetime(raw_df["Date"], format="%d/%m/%Y %H:%M:%S")
     return raw_df
 
 
 def get_current_previous(raw_df, product_list):
+    raw_df["Date"] = pd.to_numeric(raw_df["Date"])
     previous_df = raw_df.groupby(["Sitecode", "Code", "URL"], as_index=False)[
         "Date"
     ].apply(lambda x: x.sort_values(ascending=False).nlargest(2).min())
     previous_df.reset_index(drop=True, inplace=True)
 
     now_df = format_df(product_list)
-    now_df["Date"] = pd.to_datetime(now_df["Date"])
     now_df.reset_index(drop=True, inplace=True)
 
     previous_df = previous_df.merge(raw_df, on=["Sitecode", "Code", "URL", "Date"])
@@ -283,8 +281,8 @@ def get_current_previous(raw_df, product_list):
 
 def get_min_df(raw_df):
     raw_df_filter = raw_df.copy()
-    raw_df_filter = raw_df_filter[raw_df_filter['Price'] != 0.000001]
-    min_df = raw_df_filter.groupby(['Sitecode','Code','URL'])['Price'].min()
+    raw_df_filter = raw_df_filter[raw_df_filter["Price"] != 0.000001]
+    min_df = raw_df_filter.groupby(["Sitecode", "Code", "URL"])["Price"].min()
     min_df = min_df.reset_index()
     return min_df
 
