@@ -17,10 +17,6 @@ import ast
 from oauth2client.service_account import ServiceAccountCredentials
 
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
