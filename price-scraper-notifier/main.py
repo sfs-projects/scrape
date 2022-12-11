@@ -3,6 +3,7 @@
 
 import requests
 import asyncio
+import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
@@ -14,6 +15,11 @@ import random
 import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
+
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -59,7 +65,13 @@ def auth_sheet_and_get_settings():
 
 def get_random_header():
     ua = random.choice(useragents_list)
-    header = {"Connection": "keep-alive", "User-Agent": ua}
+    header = {
+        "Connection": "close",
+        "User-Agent": ua,
+        "Content-Type": "application/json",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate",
+    }
     return header
 
 
@@ -87,8 +99,9 @@ def get_tags(settings_df, sitecode):
 
 urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
+
 product_list = pd.DataFrame()
-timeout = 30
+timeout = 60
 
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
@@ -108,7 +121,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     product_list.reset_index(drop=True, inplace=True)
 
 
-async def scrape(url):
+async def scrape(url, retries=1, delay=5):
     header = get_random_header()
     async with aiohttp.ClientSession(headers=header) as session:
         try:
@@ -210,25 +223,28 @@ async def scrape(url):
                             sitecode, product_name, code, price, stock, date, url
                         )
         except (Exception, BaseException, TimeoutError) as e:
-            print("Error", e, url)
+            if retries > 0:
+                print(f"Error: {e}, {url}, retrying in {delay} seconds...")
+                await asyncio.sleep(delay)
+                await scrape(url, retries=retries - 1, delay=delay * 2)
+            else:
+                print("Error finally:", e, url)
 
 
 async def main():
     start_time = time.time()
-    print("Saving the output of extracted information")
-
+    print("Saving the output")
     tasks = []
+
     for url in urls_list:
-        task = asyncio.create_task(scrape(url))
+        task = asyncio.create_task(scrape(url, retries=1, delay=5))
         tasks.append(task)
     await asyncio.gather(*tasks)
-
     time_difference = time.time() - start_time
     print(f"Scraping time: %.2f seconds." % time_difference)
 
 
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main())
+loop = asyncio.get_event_loop().run_until_complete(main())
 
 
 def format_df(dataframe):
@@ -248,7 +264,9 @@ def format_df(dataframe):
 def send_df_to_sheets(dataframe):
     dataframe = format_df(dataframe)
     df_values = dataframe.values.tolist()
-    sheet.values_append("raw", {"valueInputOption": "RAW"}, {"values": df_values})
+    sheet.values_append(
+        "raw", {"valueInputOption": "USER_ENTERED"}, {"values": df_values}
+    )
     print("Values appended to sheet")
 
 
@@ -318,6 +336,7 @@ def get_checker_perc():
 
 
 send_df_to_sheets(product_list)  ## send current scraped data to sheets
+
 
 th_sheet = sheet.worksheet("thresholds")
 THRESHOLD = float(th_sheet.acell("A2").value)
