@@ -116,7 +116,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     product_list.reset_index(drop=True, inplace=True)
 
 
-async def scrape(url, retries=1, delay=15):
+async def scrape(url):
     header = get_random_header()
     async with aiohttp.ClientSession(headers=header) as session:
         try:
@@ -217,12 +217,7 @@ async def scrape(url, retries=1, delay=15):
                             sitecode, product_name, code, price, stock, date, url
                         )
         except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
-            if retries > 0 and not isinstance(e, AttributeError):
-                print(f"Error: {e}, {url}, retrying in {delay} seconds...")
-                await asyncio.sleep(delay)
-                await scrape(url, retries=retries - 1, delay=delay * 2)
-            else:
-                print("Error finally:", e, url)
+            print("Error finally:", e, url)
 
 
 async def main():
@@ -231,7 +226,7 @@ async def main():
     tasks = []
 
     for url in urls_list:
-        task = asyncio.create_task(scrape(url, retries=1, delay=15))
+        task = asyncio.create_task(scrape(url))
         tasks.append(task)
     await asyncio.gather(*tasks)
     time_difference = time.time() - start_time
