@@ -219,7 +219,7 @@ async def scrape(url, retries=1, delay=5):
                             sitecode, product_name, code, price, stock, date, url
                         )
         except (Exception, BaseException, TimeoutError) as e:
-            if retries > 0:
+            if retries > 0 and not isinstance(e, AttributeError):
                 print(f"Error: {e}, {url}, retrying in {delay} seconds...")
                 await asyncio.sleep(delay)
                 await scrape(url, retries=retries - 1, delay=delay * 2)
