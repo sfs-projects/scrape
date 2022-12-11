@@ -16,12 +16,11 @@ import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
 
-
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
+GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS)  # .replace("\n","\\n")
 
 
 def auth_sheet_and_get_settings():
@@ -117,7 +116,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     product_list.reset_index(drop=True, inplace=True)
 
 
-async def scrape(url, retries=1, delay=5):
+async def scrape(url, retries=1, delay=15):
     header = get_random_header()
     async with aiohttp.ClientSession(headers=header) as session:
         try:
@@ -209,7 +208,6 @@ async def scrape(url, retries=1, delay=5):
                                 print("Stock missing", stock, url, e)
 
                         else:
-                            pass
                             product_name, code, price, stock = None
                             print(
                                 "Request failed with status code:", response.status, url
@@ -218,7 +216,7 @@ async def scrape(url, retries=1, delay=5):
                         await save_items(
                             sitecode, product_name, code, price, stock, date, url
                         )
-        except (Exception, BaseException, TimeoutError) as e:
+        except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
             if retries > 0 and not isinstance(e, AttributeError):
                 print(f"Error: {e}, {url}, retrying in {delay} seconds...")
                 await asyncio.sleep(delay)
@@ -233,7 +231,7 @@ async def main():
     tasks = []
 
     for url in urls_list:
-        task = asyncio.create_task(scrape(url, retries=1, delay=5))
+        task = asyncio.create_task(scrape(url, retries=1, delay=15))
         tasks.append(task)
     await asyncio.gather(*tasks)
     time_difference = time.time() - start_time
@@ -325,7 +323,7 @@ def get_checker_perc():
     len_c = len(urls_list)
     checker_perc = len_p / len_c
     checker_perc_str = str(round(checker_perc * 100, 2)) + str("%")
-    if checker_perc <= 0.85:
+    if checker_perc <= 0.80:
         log_message = f"Possible errors. Only {checker_perc_str} of urls were checked. [{len_p}/{len_c}]"
         send_to_telegram(log_message)
     return checker_perc_str
