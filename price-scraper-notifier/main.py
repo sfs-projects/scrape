@@ -20,7 +20,7 @@ API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n","\\n"))
+GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
 
 
 def auth_sheet_and_get_settings():
@@ -96,7 +96,7 @@ urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 
 product_list = pd.DataFrame()
-timeout = 60
+timeout = 25
 
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
@@ -233,7 +233,7 @@ async def main():
     print(f"Scraping time: %.2f seconds." % time_difference)
 
 
-loop = asyncio.get_event_loop().run_until_complete(main())
+asyncio.run(main())
 
 
 def format_df(dataframe):
