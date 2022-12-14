@@ -18,7 +18,9 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v3
         with:
-          python-version: '3.10.2' # install the python version needed
+          python-version: '3.x' # install the python version needed
+          cache: "pip"
+          architecture: 'x64'
           
       - name: Install python packages
         run: |
