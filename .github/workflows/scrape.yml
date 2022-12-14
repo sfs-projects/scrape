@@ -9,7 +9,7 @@ on:
       - main
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-20.04
     steps:
 
       - name: Checkout repo content
@@ -18,8 +18,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10' # install the python version needed
-          cache: "pip"
+          python-version: '3.10.2' # install the python version needed
           architecture: 'x64'
           
       - name: Install python packages
