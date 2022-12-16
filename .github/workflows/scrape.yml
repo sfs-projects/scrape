@@ -18,7 +18,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10.2' # install the python version needed
+          python-version: '3.8.x' # install the python version needed
           architecture: 'x64'
           
       - name: Install python packages
@@ -26,7 +26,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r price-scraper-notifier/requirements.txt
           
-      - name: Execute py script # run main.py to get the latest data
+      - name: Execute py script # run main.py 
         env: 
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
