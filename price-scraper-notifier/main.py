@@ -3,6 +3,7 @@
 
 import requests
 import asyncio
+import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
@@ -20,7 +21,7 @@ API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
+GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n","\\n"))  # .replace("\n","\\n")
 
 
 def auth_sheet_and_get_settings():
@@ -218,7 +219,6 @@ async def scrape(url):
                             sitecode, product_name, code, price, stock, date, url
                         )
         except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
-            print(product_name, code, price, stock)
             print("Error finally:", e, url)
 
 
@@ -235,7 +235,8 @@ async def main():
     print(f"Scraping time: %.2f seconds." % time_difference)
 
 
-asyncio.run(main())
+loop = asyncio.get_event_loop()
+loop.run_until_complete(main())
 
 
 def format_df(dataframe):
