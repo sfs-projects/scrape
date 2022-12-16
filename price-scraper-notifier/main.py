@@ -119,7 +119,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
 async def scrape(url):
     header = get_random_header()
     async with aiohttp.ClientSession(headers=header) as session:
-        await asyncio.sleep(2)
+        await asyncio.sleep(1)
         try:
             async with session.get(url, timeout=timeout) as response:
                 for row in urls_df.itertuples():
@@ -131,7 +131,7 @@ async def scrape(url):
                         )
                         if response.status == 200:
                             body = await response.text()
-                            soup = BeautifulSoup(body, "html.parser")
+                            soup = BeautifulSoup(body, "lxml")
 
                             try:
                                 if sitecode == 4:
@@ -217,6 +217,7 @@ async def scrape(url):
                         await save_items(
                             sitecode, product_name, code, price, stock, date, url
                         )
+                        print(product_name, code, price, stock)
         except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
             print("Error finally:", e, url)
 
