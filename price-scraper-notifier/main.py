@@ -3,7 +3,6 @@
 
 import requests
 import asyncio
-import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
@@ -15,6 +14,7 @@ import random
 import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
+
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -217,8 +217,8 @@ async def scrape(url):
                         await save_items(
                             sitecode, product_name, code, price, stock, date, url
                         )
-                        print(product_name, code, price, stock)
         except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
+            print(product_name, code, price, stock)
             print("Error finally:", e, url)
 
 
