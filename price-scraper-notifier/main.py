@@ -3,7 +3,6 @@
 
 import requests
 import asyncio
-import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
@@ -21,7 +20,7 @@ API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n","\\n"))  # .replace("\n","\\n")
+GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
 
 
 def auth_sheet_and_get_settings():
@@ -59,14 +58,20 @@ def auth_sheet_and_get_settings():
     return urls_df, urls_list, useragents_list, settings_df
 
 
-def get_random_header():
+def get_homepage_url(url):
+    return url.split("/")[0] + "//" + url.split("/")[2]
+
+
+def get_random_header(url):
     ua = random.choice(useragents_list)
+    referer = get_homepage_url(url)
     header = {
         "Connection": "close",
         "User-Agent": ua,
-        "Content-Type": "application/json",
+        # "Content-Type": "application/json",
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate",
+        "Referer": referer,
     }
     return header
 
@@ -117,109 +122,116 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     product_list.reset_index(drop=True, inplace=True)
 
 
+# Create a semaphore to limit the number of concurrent connections
+sem = asyncio.Semaphore(5)
+
+
 async def scrape(url):
-    header = get_random_header()
-    async with aiohttp.ClientSession(headers=header) as session:
-        await asyncio.sleep(1)
-        try:
-            async with session.get(url, timeout=timeout) as response:
-                for row in urls_df.itertuples():
-                    if row.url == url:
-                        sitecode = row.sitecode
-                        date = time_now()
-                        pn_string, c_string, pr_string, st_string = get_tags(
-                            settings_df, sitecode
-                        )
-                        if response.status == 200:
-                            body = await response.text()
-                            soup = BeautifulSoup(body, "lxml")
-
-                            try:
-                                if sitecode == 4:
-                                    product_name = soup.find(
-                                        class_=re.compile(pn_string)
-                                    ).text.strip()
-                                else:
-                                    product_name = soup.find(
-                                        class_=re.compile(pn_string)
-                                    ).next_element.text.strip()
-                            except Exception as e:
-                                product_name = ""
-                                print("Product name missing", product_name, url, e)
-
-                            try:
-                                if any(sitecode == item for item in [0, 2]):
-                                    code = soup.find(
-                                        class_=re.compile(c_string)
-                                    ).text.strip()
-                                elif any(sitecode == item for item in [3, 4]):
-                                    code = (
-                                        soup.find(class_=re.compile(c_string))
-                                        .find("span")
-                                        .next_element.text.strip()
-                                    )
-                                else:
-                                    code = soup.find(
-                                        class_=re.compile(c_string)
-                                    ).next_element.text.strip()
-                            except Exception as e:
-                                code = ""
-                                print("Code missing", code, url, e)
-
-                            try:
-                                price_init = soup.find(class_=re.compile(pr_string))
-                                price = (
-                                    price_init.next_element.replace("RON", "")
-                                    .replace(".", "")
-                                    .replace(",", ".")
-                                    .strip()
-                                )
-                                price = float(price)
-                            except Exception as e:
-                                price = 0.000001
-                                price = float(price)
-                                print(
-                                    "Price missing",
-                                    price_init,
-                                    type(price_init),
-                                    url,
-                                    e,
-                                )
-
-                            try:
-                                if any(sitecode == item for item in [0, 2]):
-                                    stock = (
-                                        soup.find(class_=re.compile(st_string))
-                                        .text.replace("\n", "")
-                                        .strip()
-                                    )
-                                elif any(sitecode == item for item in [3, 4]):
-                                    stock = (
-                                        soup.find(class_=re.compile(st_string))
-                                        .find("span")
-                                        .next_element.text.strip()
-                                    )
-                                else:
-                                    stock = (
-                                        soup.find(class_=re.compile(st_string))
-                                        .next_element.text.replace("\n", "")
-                                        .strip()
-                                    )
-                            except Exception as e:
-                                stock = ""
-                                print("Stock missing", stock, url, e)
-
-                        else:
-                            product_name, code, price, stock = None
-                            print(
-                                "Request failed with status code:", response.status, url
+    # Acquire the semaphore before making the request
+    async with sem:
+        header = get_random_header(url)
+        async with aiohttp.ClientSession(headers=header) as session:
+            try:
+                async with session.get(url, timeout=timeout) as response:
+                    for row in urls_df.itertuples():
+                        if row.url == url:
+                            sitecode = row.sitecode
+                            date = time_now()
+                            pn_string, c_string, pr_string, st_string = get_tags(
+                                settings_df, sitecode
                             )
+                            if response.status == 200:
+                                body = await response.text()
+                                soup = BeautifulSoup(body, "lxml")
 
-                        await save_items(
-                            sitecode, product_name, code, price, stock, date, url
-                        )
-        except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
-            print("Error finally:", e, url)
+                                try:
+                                    if sitecode == 4:
+                                        product_name = soup.find(
+                                            class_=re.compile(pn_string)
+                                        ).text.strip()
+                                    else:
+                                        product_name = soup.find(
+                                            class_=re.compile(pn_string)
+                                        ).next_element.text.strip()
+                                except Exception as e:
+                                    product_name = ""
+                                    print("Product name missing", product_name, url, e)
+
+                                try:
+                                    if any(sitecode == item for item in [0, 2]):
+                                        code = soup.find(
+                                            class_=re.compile(c_string)
+                                        ).text.strip()
+                                    elif any(sitecode == item for item in [3, 4]):
+                                        code = (
+                                            soup.find(class_=re.compile(c_string))
+                                            .find("span")
+                                            .next_element.text.strip()
+                                        )
+                                    else:
+                                        code = soup.find(
+                                            class_=re.compile(c_string)
+                                        ).next_element.text.strip()
+                                except Exception as e:
+                                    code = ""
+                                    print("Code missing", code, url, e)
+
+                                try:
+                                    price_init = soup.find(class_=re.compile(pr_string))
+                                    price = (
+                                        price_init.next_element.replace("RON", "")
+                                        .replace(".", "")
+                                        .replace(",", ".")
+                                        .strip()
+                                    )
+                                    price = float(price)
+                                except Exception as e:
+                                    price = 0.000001
+                                    price = float(price)
+                                    print(
+                                        "Price missing",
+                                        price_init,
+                                        type(price_init),
+                                        url,
+                                        e,
+                                    )
+
+                                try:
+                                    if any(sitecode == item for item in [0, 2]):
+                                        stock = (
+                                            soup.find(class_=re.compile(st_string))
+                                            .text.replace("\n", "")
+                                            .strip()
+                                        )
+                                    elif any(sitecode == item for item in [3, 4]):
+                                        stock = (
+                                            soup.find(class_=re.compile(st_string))
+                                            .find("span")
+                                            .next_element.text.strip()
+                                        )
+                                    else:
+                                        stock = (
+                                            soup.find(class_=re.compile(st_string))
+                                            .next_element.text.replace("\n", "")
+                                            .strip()
+                                        )
+                                except Exception as e:
+                                    stock = ""
+                                    print("Stock missing", stock, url, e)
+
+                            else:
+                                product_name, code, price, stock = None
+                                print(
+                                    "Request failed with status code:",
+                                    response.status,
+                                    url,
+                                )
+
+                            await save_items(
+                                sitecode, product_name, code, price, stock, date, url
+                            )
+            except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
+                print("Error finally:", e, url)
 
 
 async def main():
