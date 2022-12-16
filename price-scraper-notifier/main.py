@@ -3,7 +3,6 @@
 
 import requests
 import asyncio
-import json
 import time
 import aiohttp
 from bs4 import BeautifulSoup
@@ -21,9 +20,7 @@ API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(
-    GOOGLE_CREDS.replace("\n", "\\n")
-)  # .replace("\n","\\n")
+GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
 
 
 def auth_sheet_and_get_settings():
@@ -61,14 +58,20 @@ def auth_sheet_and_get_settings():
     return urls_df, urls_list, useragents_list, settings_df
 
 
-def get_random_header():
+def get_homepage_url(url):
+    return url.split("/")[0] + "//" + url.split("/")[2]
+
+
+def get_random_header(url):
     ua = random.choice(useragents_list)
+    referer = get_homepage_url(url)
     header = {
         "Connection": "close",
         "User-Agent": ua,
-        "Content-Type": "application/json",
+        # "Content-Type": "application/json",
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate",
+        "Referer": referer,
     }
     return header
 
@@ -126,7 +129,7 @@ sem = asyncio.Semaphore(5)
 async def scrape(url):
     # Acquire the semaphore before making the request
     async with sem:
-        header = get_random_header()
+        header = get_random_header(url)
         async with aiohttp.ClientSession(headers=header) as session:
             try:
                 async with session.get(url, timeout=timeout) as response:
