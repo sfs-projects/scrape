@@ -2,7 +2,7 @@ name: price-scraper-notifier
 
 on:
   schedule:
-    - cron: '0 * * * 1'
+    - cron: '0 8-23/5 * * *'
     
   push:
     branches:
