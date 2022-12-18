@@ -18,7 +18,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8.x' # install the python version needed
+          python-version: '3.10.x' # install the python version needed
           architecture: 'x64'
           
       - name: Install python packages
