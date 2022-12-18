@@ -68,7 +68,7 @@ def get_random_header(url):
     header = {
         "Connection": "close",
         "User-Agent": ua,
-        # "Content-Type": "application/json",
+        "Content-Type": "application/json",
         "Accept": "*/*",
         "Accept-Encoding": "gzip, deflate",
         "Referer": referer,
@@ -123,7 +123,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
 
 
 # Create a semaphore to limit the number of concurrent connections
-sem = asyncio.Semaphore(5)
+sem = asyncio.Semaphore(1)
 
 
 async def scrape(url):
