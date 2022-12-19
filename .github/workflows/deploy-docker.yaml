@@ -20,7 +20,7 @@ jobs:
       - name: Build the Docker image
         uses: docker://docker
         with:
-          args: build -t my_repo:latest -f price-scraper-notifier/Dockerfile .
+          args: build -t fs22/my_repo:latest -f price-scraper-notifier/Dockerfile .
           
       # Push the Docker image to a registry
       - name: Push the Docker image
