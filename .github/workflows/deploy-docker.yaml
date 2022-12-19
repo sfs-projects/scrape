@@ -1,0 +1,31 @@
+name: Deploy to Docker
+
+on:
+  schedule:
+    # Run the job every 4 hours between 7:00 and 23:00 (UTC)
+    - cron: '0 7-23/4 * * *'
+  push:
+    branches:
+      - main
+
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # Build the Docker image
+      - name: Build the Docker image
+        uses: docker://docker
+        with:
+          args: build -t my-image:latest .
+      
+      # Push the Docker image to a registry
+      - name: Push the Docker image
+        uses: docker://docker
+        with:
+          login: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: docker.io
+          repo: my-image
+          tag: latest
+          args: push my-image:latest
