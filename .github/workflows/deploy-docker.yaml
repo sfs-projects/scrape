@@ -27,7 +27,7 @@ jobs:
         with:
           login: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-          registry: hub.docker.com
+          registry: docker.io
           repo: ${{ secrets.DOCKER_USERNAME }}/my_repo
           tag: latest
           args: push ${{ secrets.DOCKER_USERNAME }}/my_repo:latest
