@@ -232,6 +232,7 @@ async def scrape(url):
                             )
             except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
                 print("Error finally:", e, url)
+                print(soup)
 
 
 async def main():
