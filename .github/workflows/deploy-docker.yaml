@@ -19,7 +19,7 @@ jobs:
       - name: Build the Docker image
         uses: docker://docker
         with:
-          args: build -t my_image:latest -f price-scraper-notifier/Dockerfile .
+          args: build -t my_repo:latest -f price-scraper-notifier/Dockerfile .
           
       # Push the Docker image to a registry
       - name: Push the Docker image
@@ -30,4 +30,4 @@ jobs:
           registry: hub.docker.com
           repo: ${{ secrets.DOCKER_USERNAME }}/my_repo
           tag: latest
-          args: push my_image:latest
+          args: push my_repo:latest
