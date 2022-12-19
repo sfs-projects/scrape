@@ -7,8 +7,8 @@ on:
       - main
 env:
     DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-    DOCKER_HUB_USER: ${{ secrets.DOCKER_USER }}
-    DOCKER_HUB_NAMESPACE: ${{ secrets.DOCKER_USER }}
+    DOCKER_HUB_USER: ${{ secrets.DOCKER_USERNAME }}
+    DOCKER_HUB_NAMESPACE: ${{ secrets.DOCKER_USERNAME }}
     VERSION: ${{ github.sha }}
     
 jobs:
