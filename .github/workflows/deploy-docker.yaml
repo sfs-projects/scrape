@@ -13,6 +13,8 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+      - uses: actions/checkout@v2
       # Build the Docker image
       - name: Build the Docker image
         uses: docker://docker
