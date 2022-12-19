@@ -1,5 +1,4 @@
 name: Deploy to Docker
-
 on:
   schedule:
     # Run the job every 4 hours between 7:00 and 23:00 (UTC)
@@ -21,7 +20,7 @@ jobs:
       - name: Build the Docker image
         uses: docker://docker
         with:
-          args: build -t my-image:latest -f price-scraper-notifier/Dockerfile
+          args: build -t my-image:latest -f price-scraper-notifier/Dockerfile .
           
       # Push the Docker image to a registry
       - name: Push the Docker image
