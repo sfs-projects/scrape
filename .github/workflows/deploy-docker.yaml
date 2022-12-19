@@ -1,28 +1,31 @@
 name: Deploy to Docker
-on:
+'on':
   schedule:
-    # Run the job every 4 hours between 7:00 and 23:00 (UTC)
-    - cron: '0 7-23/6 * * *'
+    - cron: 0 7-23/6 * * *
   push:
     branches:
       - main
-
 env:
-  DOCKER_HUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-  DOCKER_HUB_USER: ${{ secrets.DOCKER_USER }}
-  DOCKER_HUB_NAMESPACE: ${{ secrets.DOCKER_USER }}
-  VERSION: ${{ github.sha }}
-
+  DOCKER_HUB_PASSWORD: '${{ secrets.DOCKER_PASSWORD }}'
+  DOCKER_HUB_USER: '${{ secrets.DOCKER_USER }}'
+  DOCKER_HUB_NAMESPACE: '${{ secrets.DOCKER_USER }}'
+  VERSION: '${{ github.sha }}'
 jobs:
   publish_python:
     runs-on: ubuntu-latest
     env:
-      IMAGE_NAME: 'docker-image'
-      LANGUAGE: 'python'
+      IMAGE_NAME: docker-image
+      LANGUAGE: python
       LANGUAGE_VERSION: 3.11.2
     steps:
       - uses: actions/checkout@v2
-      - run: echo ${DOCKER_HUB_PASSWORD} | docker login --username "${DOCKER_HUB_USER}" --password-stdin
-      - run: docker build . --file ${IMAGE_NAME}/Dockerfile -t ${IMAGE_NAME}
-      - run: docker tag "${IMAGE_NAME}" "${DOCKER_HUB_NAMESPACE}/${IMAGE_NAME}:${LANGUAGE}${LANGUAGE_VERSION}-${VERSION}"
-      - run: docker push "${DOCKER_HUB_NAMESPACE}/${IMAGE_NAME}:${LANGUAGE}${LANGUAGE_VERSION}-${VERSION}"
+      - run: >-
+          echo ${DOCKER_HUB_PASSWORD} | docker login --username
+          "${DOCKER_HUB_USER}" --password-stdin
+      - run: 'docker build . --file ${IMAGE_NAME}/Dockerfile -t ${IMAGE_NAME}'
+      - run: >-
+          docker tag "${IMAGE_NAME}"
+          "${DOCKER_HUB_NAMESPACE}/${IMAGE_NAME}:${LANGUAGE}${LANGUAGE_VERSION}-${VERSION}"
+      - run: >-
+          docker push
+          "${DOCKER_HUB_NAMESPACE}/${IMAGE_NAME}:${LANGUAGE}${LANGUAGE_VERSION}-${VERSION}"
