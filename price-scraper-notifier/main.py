@@ -123,7 +123,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
 
 
 # Create a semaphore to limit the number of concurrent connections
-sem = asyncio.Semaphore(3)
+sem = asyncio.Semaphore(4)
 
 
 async def scrape(url):
@@ -220,19 +220,13 @@ async def scrape(url):
                                     print("Stock missing", stock, url, e)
 
                             else:
+                                soup = "Empty soup"
                                 product_name, code, price, stock = None
-                                print(
-                                    "Request failed with status code:",
-                                    response.status,
-                                    url,
-                                )
+                                print("Request failed with status code:", response.status, url)
 
-                            await save_items(
-                                sitecode, product_name, code, price, stock, date, url
-                            )
-            except (Exception, BaseException, TimeoutError, asyncio.TimeoutError) as e:
+                            await save_items(sitecode, product_name, code, price, stock, date, url)
+            except (Exception, BaseException, TimeoutError, asyncio.exceptions.TimeoutError, asyncio.exceptions.ServerError) as e:
                 print("Error finally:", e, url)
-                print(soup)
 
 
 async def main():
