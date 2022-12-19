@@ -11,19 +11,18 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      # To use this repository's private action,
-      # you must check out the repository
+      # To use this repository's private action, you must check out the repository
       - name: Checkout
         uses: actions/checkout@v3
       # Build the Docker image
       - name: Build the Docker image
-        uses: docker/build-push-action@v2
+        uses: docker://docker
         with:
-          args: build -t my_repo:latest -f price-scraper-notifier/Dockerfile .
+          args: build -t ${{ secrets.DOCKER_USERNAME }}my_repo:latest -f price-scraper-notifier/Dockerfile .
           
       # Push the Docker image to a registry
       - name: Push the Docker image
-        uses: docker/build-push-action@v2
+        uses: docker://docker
         with:
           login: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
