@@ -29,6 +29,6 @@ jobs:
           login: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           registry: docker.io
-          repo: my-image
+          repo: my_repo
           tag: latest
           args: push my-image:latest
