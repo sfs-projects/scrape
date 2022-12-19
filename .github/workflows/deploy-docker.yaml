@@ -24,7 +24,7 @@ jobs:
             repository: ${{secrets.DOCKERHUB_REPO}}
             registry: https://index.docker.io/v1/
             tag_with_ref: true
-            context: ./price-scraper-notifier
+            dockerfile: ./Dockerfile
 
         - name: Check docker installed or not
           run: docker run hello-world
