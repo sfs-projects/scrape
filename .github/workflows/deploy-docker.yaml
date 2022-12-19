@@ -18,7 +18,7 @@ jobs:
         uses: docker://docker
         with:
           args: build -t my-image:latest
-          path: main/price-scraper-notifier
+          path: main/price-scraper-notifier/Dockerfile
       
       # Push the Docker image to a registry
       - name: Push the Docker image
