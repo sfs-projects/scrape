@@ -19,7 +19,7 @@ jobs:
         run: docker build -t my_image:latest_tag . -f /scrape/price-scraper-notifier/Dockerfile .
 
       - name: Push Docker image to registry
-        run: docker push DOCKER_USERNAME/my_image:latest_tag
+        run: docker push ${DOCKER_USERNAME}/my_image:latest_tag
         env:
           DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
@@ -27,6 +27,7 @@ jobs:
   run:
     name: Run Docker container
     runs-on: ubuntu-latest
+    needs: [build]
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
