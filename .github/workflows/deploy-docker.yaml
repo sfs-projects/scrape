@@ -30,3 +30,10 @@ jobs:
           push: true
           tags: user/app:latest
 
+      - name: Run Docker container
+        env: 
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
+        run: docker run -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS}
