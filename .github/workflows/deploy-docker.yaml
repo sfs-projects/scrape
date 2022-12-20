@@ -36,4 +36,4 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
-        run: docker run -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS} ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+        run: docker run -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS} ${{ secrets.DOCKERHUB_REPO }}:latest
