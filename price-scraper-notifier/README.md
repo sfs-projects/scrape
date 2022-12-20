@@ -1,1 +1,1 @@
-[![.github/workflows/scrape.yml](https://github.com/sfs-projects/scrape/actions/workflows/scrape.yml/badge.svg?branch=main)](https://github.com/sfs-projects/scrape/actions/workflows/scrape.yml)
+[![CI/CD Workflow](https://github.com/sfs-projects/scrape/actions/workflows/deploy-docker.yaml/badge.svg)](https://github.com/sfs-projects/scrape/actions/workflows/deploy-docker.yaml)
