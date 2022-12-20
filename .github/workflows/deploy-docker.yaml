@@ -28,7 +28,7 @@ jobs:
         with:
           context: price-scraper-notifier  # specify the correct path to the context directory
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/app:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
       - name: Run Docker container
         env: 
@@ -36,4 +36,4 @@ jobs:
           CHAT_ID: ${{ secrets.CHAT_ID }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
-        run: docker run -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS}
+        run: docker run -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS} ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
