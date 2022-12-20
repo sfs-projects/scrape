@@ -123,7 +123,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
 
 
 # Create a semaphore to limit the number of concurrent connections
-sem = asyncio.Semaphore(1)
+sem = asyncio.Semaphore(5)
 
 
 async def scrape(url):
