@@ -28,7 +28,7 @@ jobs:
         with:
           context: price-scraper-notifier  # specify the correct path to the context directory
           push: true
-          tags: user/app:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/app:latest
 
       - name: Run Docker container
         env: 
