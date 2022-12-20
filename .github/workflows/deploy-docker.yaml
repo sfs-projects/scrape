@@ -32,8 +32,10 @@ jobs:
 
       - name: Run Docker container
         env: 
+          USER: ${{ secrets.DOCKER_USERNAME }}
+          REPO: ${{ secrets.DOCKERHUB_REPO }}
           API_TOKEN: ${{ secrets.API_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           SHEET_ID: ${{ secrets.SHEET_ID }}
           GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
-        run: docker run --name my-container -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS} ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+        run: docker run -e API_TOKEN=${API_TOKEN} -e CHAT_ID=${CHAT_ID} -e SHEET_ID=${SHEET_ID} -e GOOGLE_CREDS=${GOOGLE_CREDS} ${USER}/${REPO}:latest
