@@ -102,7 +102,7 @@ urls_df, urls_list, useragents_list, settings_df = auth_sheet_and_get_settings()
 
 
 product_list = pd.DataFrame()
-timeout = 20
+timeout = 30
 
 
 async def save_items(sitecode, product_name, code, price, stock, date, url):
@@ -123,7 +123,7 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
 
 
 # Create a semaphore to limit the number of concurrent connections
-sem = asyncio.Semaphore(3)
+sem = asyncio.Semaphore(1)
 
 
 async def scrape(url):
