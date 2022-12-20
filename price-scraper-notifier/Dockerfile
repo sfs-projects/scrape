@@ -1,7 +1,7 @@
-FROM python:3.10
+FROM python:3.11.1
 
-COPY price-scraper-notifier/requirements.txt .
-COPY price-scraper-notifier/main.py .
+ADD requirements.txt .
+ADD main.py .
 
 
 RUN pip install --upgrade pip
