@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Build Docker image
-        run: docker build -t my_image:latest_tag -f price-scraper-notifier/Dockerfile .
+        run: docker build -t ${DOCKER_USERNAME}/my_image:latest_tag -f price-scraper-notifier/Dockerfile .
 
       - name: Push Docker image to registry
         run: docker push ${DOCKER_USERNAME}/my_image:latest_tag
