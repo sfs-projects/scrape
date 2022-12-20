@@ -20,7 +20,10 @@ jobs:
         
       - name: Give buildx access to necessary files
         run: chmod -R 755 price-scraper-notifier
-      
+        
+      - name: Delete cache
+        run: rm -rf $HOME/.cache/docker/buildx
+
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
