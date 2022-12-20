@@ -1,4 +1,4 @@
-name: Deploy to Docker
+name: CI/CD Workflow
 
 on:
   push:
@@ -6,32 +6,30 @@ on:
       - main
   schedule:
     - cron: "0 7-23/6 * * *"
-    
-jobs:
-    deploy:
-       runs-on: ubuntu-latest
-       strategy:
-         fail-fast: false
-         matrix:
-            python-version: [3.11.1]
-       steps:
-        - uses: actions/checkout@master
-        - name: Build and push Docker image
-          uses: docker/build-push-action@v2
-          with:
-            username: ${{secrets.DOCKER_USERNAME}}
-            password: ${{secrets.DOCKER_PASSWORD}}
-            repository: ${{secrets.DOCKERHUB_REPO}}
-            registry: https://index.docker.io/v1/
-            tag_with_ref: true
-            dockerfile: ./Dockerfile
 
-        - name: Check docker installed or not
-          run: docker run hello-world
-        - name: Push to docker hub
-          uses: docker/build-push-action/@v2
-          with:
-            username: ${{secrets.DOCKER_USERNAME}}
-            password: ${{secrets.DOCKER_PASSWORD}}
-            repository: ${{secrets.DOCKERHUB_REPO}}
-            tag_with_ref: true
+jobs:
+  build:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Build Docker image
+        run: docker build -t my_image:latest_tag .
+
+      - name: Push Docker image to registry
+        run: docker push DOCKER_USERNAME/my_image:latest_tag
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+  run:
+    name: Run Docker container
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Docker container
+        run: docker run -d --name my_container DOCKER_USERNAME/my_image:latest_tag
