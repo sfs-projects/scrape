@@ -340,7 +340,7 @@ def get_checker_perc():
     len_c = len(urls_list)
     checker_perc = len_p / len_c
     checker_perc_str = str(round(checker_perc * 100, 2)) + str("%")
-    if checker_perc <= 0.80:
+    if checker_perc <= 0.70:
         log_message = f"Possible errors. Only {checker_perc_str} of urls were checked. [{len_p}/{len_c}]"
         send_to_telegram(log_message)
     return checker_perc_str
