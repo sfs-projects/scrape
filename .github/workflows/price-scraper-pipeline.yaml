@@ -1,0 +1,55 @@
+name: price-scraper-pipeline
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 */6 * * *"  # every 6 hours UTC
+
+jobs:
+
+  build_and_push:
+    # only run this job on push, not on schedule
+    if: github.event_name == 'push'
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ./price-scraper-notifier
+          push: true
+          tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+
+  run_scraper:
+    # only run this job on the schedule trigger
+    if: github.event_name == 'schedule'
+    name: Run scraper container
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Pull latest image
+        run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+
+      - name: Run scraper with secrets
+        run: |
+          docker run \
+            --env API_TOKEN='${{ secrets.API_TOKEN }}' \
+            --env CHAT_ID='${{ secrets.CHAT_ID }}' \
+            --env SHEET_ID='${{ secrets.SHEET_ID }}' \
+            --env GOOGLE_CREDS='${{ secrets.GOOGLE_CREDS }}' \
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
