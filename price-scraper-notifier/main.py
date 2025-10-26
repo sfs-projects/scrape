@@ -15,12 +15,12 @@ import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
 import cloudscraper
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # ─────────────────────────
 # ① Env
 # ─────────────────────────
-# load_dotenv()
+load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
@@ -131,21 +131,13 @@ product_list = pd.DataFrame(
     columns=["Sitecode", "Product name", "Code", "Price", "Stock", "Date", "URL"]
 )
 
-timeout = 10
-sem = asyncio.Semaphore(4)
+timeout = 15
+sem = asyncio.Semaphore(2)
 
 # ─────────────────────────
 # ④ Helpers: cleanup/normalization
 # ─────────────────────────
 def clean_price(raw_text):
-    """
-    Turn messy UI formats into a float:
-      '5.299,00 lei' -> 5299.00
-      '5,299.00'     -> 5299.00
-      '€2,389.00'    -> 2389.00
-      '7.599'        -> 7599.00
-    If can't parse reliably: return 0.000001 (sentinel for "no price").
-    """
     if not raw_text:
         return 0.000001
     try:
@@ -267,10 +259,12 @@ async def scrape(url):
                             try:
                                 scraper = cloudscraper.create_scraper()
                                 r = scraper.get(url, headers=header, timeout=timeout)
+                                print("cloudscraper fallback got", r.status_code, "for", url)
                                 status = r.status_code
                                 body = r.text
                             except Exception as ce:
                                 print("Cloudscraper failed:", ce, url)
+
 
                     # 3. parse if we actually got HTML
                     if status == 200 and body:
@@ -474,10 +468,19 @@ def process_alerts():
                     send_to_telegram(msg)
 
     # coverage % and heartbeat
-    checked_pct = get_checker_perc()
+    checked_pct = get_checker_perc()  # ex. "62.5%"
     heartbeat = f"✅ Scrape done at {time_now()}. Checked {checked_pct} of URLs."
     print(heartbeat)
-    send_to_telegram(heartbeat)
+
+    # send heartbeat to Telegram ONLY if <90%
+    try:
+        pct_float = float(checked_pct.replace("%", ""))
+    except Exception:
+        pct_float = 0.0  # super defensive fallback
+
+    if pct_float < 90.0:
+        send_to_telegram(heartbeat)
+
 
 # ─────────────────────────
 # ⑦ Main runner
