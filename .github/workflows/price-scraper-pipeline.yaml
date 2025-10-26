@@ -6,6 +6,7 @@ on:
       - main
   schedule:
     - cron: "0 */6 * * *"  # every 6 hours UTC
+  workflow_dispatch: 
 
 jobs:
 
@@ -37,10 +38,23 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
   run_scraper:
-    # only run this job on the schedule trigger
-    if: github.event_name == 'schedule'
+    # run if cron OR manual button
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: Run scraper container
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Pull latest image
+        run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+
+      - name: Run scraper with secrets
+        run: |
+          docker run \
+            --env API_TOKEN="${{ secrets.API_TOKEN }}" \
+            --env CHAT_ID="${{ secrets.CHAT_ID }}" \
+            --env SHEET_ID="${{ secrets.SHEET_ID }}" \
+            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
     steps:
       - name: Pull latest image
