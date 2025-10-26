@@ -257,27 +257,29 @@ async def scrape(url):
                     status = response.status
                     body = ""
 
+                    # 1. first attempt
                     if status == 200:
                         body = await response.text()
-                    elif status == 403:
-                        # fallback via cloudscraper for anti-bot / cf
-                        try:
-                            scraper = cloudscraper.create_scraper()
-                            r = scraper.get(url, headers=header, timeout=timeout)
-                            status = r.status_code
-                            body = r.text
-                        except Exception as ce:
-                            print("Cloudscraper failed:", ce, url)
-                            status = 403
 
+                    # 2. fallback if blocked (403, 511 etc)
+                    elif status in (403, 511):
+                        if any(host in url for host in ["pcgarage.ro", "bike-discount", "emag.ro"]):
+                            try:
+                                scraper = cloudscraper.create_scraper()
+                                r = scraper.get(url, headers=header, timeout=timeout)
+                                status = r.status_code
+                                body = r.text
+                            except Exception as ce:
+                                print("Cloudscraper failed:", ce, url)
+
+                    # 3. parse if we actually got HTML
                     if status == 200 and body:
                         soup = BeautifulSoup(body, "html.parser")
 
-                        # dynamic extraction using selectors from the sheet:
                         product_name = extract_first_match(
                             soup,
                             pn_list,
-                            allow_title_special=True  # allow <title> fallback if configured
+                            allow_title_special=True  # allow <title> fallback
                         )
                         code = extract_first_match(
                             soup,
@@ -296,7 +298,7 @@ async def scrape(url):
                             allow_title_special=False
                         )
 
-                        # basic debug
+                        # debug prints if fields are weak
                         if not product_name:
                             print("Product name missing", url)
                         if price == 0.000001:
@@ -305,13 +307,11 @@ async def scrape(url):
                             print("Stock missing", url)
 
                         # QUALITY GATE:
-                        # If we didn't get a code OR we didn't get a real price,
-                        # skip this row (prevents saving garbage from anti-bot fallback pages).
+                        # If we didn't get a code OR price is sentinel, skip storing this row.
                         if (not code) or price == 0.000001:
                             print("Skipping incomplete/blocked page:", url, "| name candidate:", product_name)
                             return
 
-                        # Save
                         await save_items(sitecode, product_name, code, price, stock, date, url)
 
                     else:
@@ -419,17 +419,16 @@ def send_to_telegram(message):
     if not message:
         return
     try:
-        requests.post(
-            f"https://api.telegram.org/bot{API_TOKEN}/sendMessage",
-            json={
-                "chat_id": CHAT_ID,
-                "text": message,
-                "disable_web_page_preview": "true",
-            },
-        )
+        api_url = f"https://api.telegram.org/bot{API_TOKEN}/sendMessage"
+        payload = {
+            "chat_id": CHAT_ID,
+            "text": message,
+            "disable_web_page_preview": "true",
+        }
+        r = requests.post(api_url, json=payload, timeout=10)
+        print("Telegram response:", r.status_code, r.text)
     except Exception as e:
         print("Telegram error:", e)
-
 
 def get_checker_perc():
     len_p = len(product_list.index)
@@ -443,7 +442,6 @@ def get_checker_perc():
             f"⚠️ Only {perc_str} of URLs checked successfully [{len_p}/{len_c}]"
         )
     return perc_str
-
 
 def process_alerts():
     raw_df = get_raw_df()
@@ -475,8 +473,11 @@ def process_alerts():
                     print(msg)
                     send_to_telegram(msg)
 
-    print(f"Finished, checked {get_checker_perc()} of URLs.")
-
+    # coverage % and heartbeat
+    checked_pct = get_checker_perc()
+    heartbeat = f"✅ Scrape done at {time_now()}. Checked {checked_pct} of URLs."
+    print(heartbeat)
+    send_to_telegram(heartbeat)
 
 # ─────────────────────────
 # ⑦ Main runner
