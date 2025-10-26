@@ -6,12 +6,12 @@ on:
       - main
   schedule:
     - cron: "0 */6 * * *"  # every 6 hours UTC
-  workflow_dispatch: 
+  workflow_dispatch:       # allow manual trigger
 
 jobs:
 
   build_and_push:
-    # only run this job on push, not on schedule
+    # only build/push image on code push
     if: github.event_name == 'push'
     name: Build and push Docker image
     runs-on: ubuntu-latest
@@ -38,12 +38,18 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
   run_scraper:
-    # run if cron OR manual button
+    # run this job manually (workflow_dispatch) or on the cron schedule
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: Run scraper container
     runs-on: ubuntu-latest
 
     steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Pull latest image
         run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
