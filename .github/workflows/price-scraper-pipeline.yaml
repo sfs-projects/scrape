@@ -32,6 +32,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./price-scraper-notifier
+          file: ./price-scraper-notifier/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
@@ -48,8 +49,8 @@ jobs:
       - name: Run scraper with secrets
         run: |
           docker run \
-            --env API_TOKEN='${{ secrets.API_TOKEN }}' \
-            --env CHAT_ID='${{ secrets.CHAT_ID }}' \
-            --env SHEET_ID='${{ secrets.SHEET_ID }}' \
-            --env GOOGLE_CREDS='${{ secrets.GOOGLE_CREDS }}' \
+            --env API_TOKEN="${{ secrets.API_TOKEN }}" \
+            --env CHAT_ID="${{ secrets.CHAT_ID }}" \
+            --env SHEET_ID="${{ secrets.SHEET_ID }}" \
+            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
             ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
