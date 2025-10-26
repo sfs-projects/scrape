@@ -1,4 +1,4 @@
-[![CI/CD Workflow](https://github.com/sfs-projects/scrape/actions/workflows/deploy-docker.yaml/badge.svg)](https://github.com/sfs-projects/scrape/actions/workflows/deploy-docker.yaml)
+[![CI/CD Workflow](https://github.com/sfs-projects/scrape/actions/workflows/price-scraper-pipeline.yaml/badge.svg)](https://github.com/sfs-projects/scrape/actions/workflows/price-scraper-pipeline.yaml)
 
 # Price Scraper Notifier
 A Python project that scrapes and processes data using asyncio, aiohttp requests, BeautifulSoup and pandas, then sends alerts to Telegram based on price changes. The scraping tags are taken from a spreadsheet, making the process dynamic. This project uses GitHub Actions and Docker for automation.
