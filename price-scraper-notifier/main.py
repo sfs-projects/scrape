@@ -15,6 +15,8 @@ import os
 import ast
 from oauth2client.service_account import ServiceAccountCredentials
 import cloudscraper
+from playwright.async_api import async_playwright
+
 from dotenv import load_dotenv
 
 # ─────────────────────────
@@ -225,6 +227,32 @@ async def save_items(sitecode, product_name, code, price, stock, date, url):
     else:
         product_list = pd.concat([product_list, new_df], ignore_index=True)
 
+async def fetch_with_playwright(url, header):
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(
+            headless=True,
+            args=[
+                "--no-sandbox",
+                "--disable-dev-shm-usage",  # avoid /dev/shm errors in GitHub Actions
+                "--disable-blink-features=AutomationControlled"
+            ]
+        )
+        context = await browser.new_context(extra_http_headers=header)
+        page = await context.new_page()
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            # small delay for lazy-loaded price blocks
+            await asyncio.sleep(random.uniform(0.5, 1.5))
+            html = await page.content()
+            return html
+        except Exception as e:
+            print("Playwright error:", e, url)
+            return ""
+        finally:
+            await context.close()
+            await browser.close()
+
+                        
 # ─────────────────────────
 # ⑤ Scrape logic
 # ─────────────────────────
@@ -235,7 +263,7 @@ async def scrape(url):
         async with aiohttp.ClientSession(headers=header) as session:
             try:
                 # throttle a bit to look less like a bot
-                await asyncio.sleep(random.uniform(0.3, 1.0))
+                await asyncio.sleep(random.uniform(1, 5))
 
                 async with session.get(url, timeout=timeout) as response:
                     sitecode = urls_df.loc[urls_df["url"] == url, "sitecode"].values[0]
@@ -253,19 +281,28 @@ async def scrape(url):
                     if status == 200:
                         body = await response.text()
 
-                    # 2. fallback if blocked (403, 511 etc)
+                    # # 2. fallback if blocked (403, 511 etc)
+                    # elif status in (403, 511):
+                    #     if any(host in url for host in ["pcgarage.ro", "bike-discount", "emag.ro"]):
+                    #         try:
+                    #             scraper = cloudscraper.create_scraper()
+                    #             r = scraper.get(url, headers=header, timeout=timeout)
+                    #             print("cloudscraper fallback got", r.status_code, "for", url)
+                    #             status = r.status_code
+                    #             body = r.text
+                    #         except Exception as ce:
+                    #             print("Cloudscraper failed:", ce, url)
+
+
                     elif status in (403, 511):
-                        if any(host in url for host in ["pcgarage.ro", "bike-discount", "emag.ro"]):
+                        if "emag.ro" in url:
                             try:
-                                scraper = cloudscraper.create_scraper()
-                                r = scraper.get(url, headers=header, timeout=timeout)
-                                print("cloudscraper fallback got", r.status_code, "for", url)
-                                status = r.status_code
-                                body = r.text
+                                print("Trying Playwright fallback for eMAG:", url)
+                                body = await fetch_with_playwright(url, header)
+                                status = 200 if body else 511
                             except Exception as ce:
-                                print("Cloudscraper failed:", ce, url)
-
-
+                                print("Playwright fallback failed:", ce, url)
+                        
                     # 3. parse if we actually got HTML
                     if status == 200 and body:
                         soup = BeautifulSoup(body, "html.parser")
@@ -471,16 +508,6 @@ def process_alerts():
     checked_pct = get_checker_perc()  # ex. "62.5%"
     heartbeat = f"✅ Scrape done at {time_now()}. Checked {checked_pct} of URLs."
     print(heartbeat)
-
-    # send heartbeat to Telegram ONLY if <90%
-    try:
-        pct_float = float(checked_pct.replace("%", ""))
-    except Exception:
-        pct_float = 0.0  # super defensive fallback
-
-    if pct_float < 90.0:
-        send_to_telegram(heartbeat)
-
 
 # ─────────────────────────
 # ⑦ Main runner
