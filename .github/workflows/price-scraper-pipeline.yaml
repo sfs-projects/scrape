@@ -36,6 +36,9 @@ jobs:
           file: ./price-scraper-notifier/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+          cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:cache
+          cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:cache,mode=max
+
 
   run_scraper:
     # run this job manually (workflow_dispatch) or on the cron schedule

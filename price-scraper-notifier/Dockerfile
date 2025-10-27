@@ -3,8 +3,10 @@
 # ──────────────────────────────
 FROM python:3.10-slim
 
-# System deps (for Playwright Chromium)
-RUN apt-get update && apt-get install -y \
+# ──────────────────────────────
+# Install system dependencies required for Playwright Chromium
+# ──────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     libnss3 \
     libatk1.0-0 \
@@ -28,23 +30,29 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # ──────────────────────────────
-# Install Python dependencies
+# Set working directory
 # ──────────────────────────────
 WORKDIR /app
+
+# ──────────────────────────────
+# Copy only requirements first (to leverage Docker layer caching)
+# ──────────────────────────────
 COPY requirements.txt /app/
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ──────────────────────────────
-# Install Chromium (Playwright)
+# Install Playwright Chromium only once (cached layer)
 # ──────────────────────────────
 RUN python -m playwright install --with-deps chromium
 
 # ──────────────────────────────
-# Copy project code
+# Copy the rest of the project (changes here won’t bust dependency cache)
 # ──────────────────────────────
 COPY . /app
 
 # ──────────────────────────────
-# Run the scraper
+# Default entry point
 # ──────────────────────────────
-ENTRYPOINT ["python", "scraper.py"]
+ENTRYPOINT ["python", "main.py"]
