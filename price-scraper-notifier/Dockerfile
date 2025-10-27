@@ -35,9 +35,9 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # ──────────────────────────────
-# Install Playwright browser
+# Install Chromium (Playwright)
 # ──────────────────────────────
-RUN playwright install --with-deps chromium
+RUN python -m playwright install --with-deps chromium
 
 # ──────────────────────────────
 # Copy project code
