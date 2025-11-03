@@ -49,19 +49,28 @@ jobs:
 
 
   run_scraper:
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    name: Run scraper container
-    runs-on: ubuntu-latest
+  if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+  name: Run scraper container
+  runs-on: ubuntu-latest
 
-    steps:
-      - name: Download last image tag artifact
+  steps:
+      - name: Try to download last image tag artifact
+        id: get_artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: latest_image_tag
 
-      - name: Read image tag
-        id: read_tag
-        run: echo "tag=$(cat image_tag.txt)" >> $GITHUB_OUTPUT
+      - name: Determine image tag to use (artifact or latest)
+        id: pick_tag
+        run: |
+          if [ -f "image_tag.txt" ]; then
+            TAG=$(cat image_tag.txt)
+            echo "Using saved image tag: $TAG"
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          else
+            echo "No artifact found — falling back to :latest"
+            echo "tag=latest" >> $GITHUB_OUTPUT
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
@@ -69,22 +78,25 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Pull specific tagged image
+      - name: Pull image
         run: |
-          echo "Using image tag: ${{ steps.read_tag.outputs.tag }}"
-          docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.read_tag.outputs.tag }}
+          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
+          echo "Pulling $IMAGE"
+          docker pull $IMAGE
 
-      - name: Debug env in container
+      - name: Debug env inside container
         run: |
+          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
           docker run \
             --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.read_tag.outputs.tag }} python3 - << 'EOF'
+            $IMAGE python3 - << 'EOF'
 
       - name: Run scraper with secrets
         run: |
+          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
           docker run \
             --env API_TOKEN="${{ secrets.API_TOKEN }}" \
             --env CHAT_ID="${{ secrets.CHAT_ID }}" \
             --env SHEET_ID="${{ secrets.SHEET_ID }}" \
             --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.read_tag.outputs.tag }}
+            $IMAGE
