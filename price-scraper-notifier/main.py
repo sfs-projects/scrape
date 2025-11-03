@@ -17,12 +17,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 import cloudscraper
 from playwright.async_api import async_playwright
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 # ─────────────────────────
 # ① Env
 # ─────────────────────────
-load_dotenv()
+# load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
