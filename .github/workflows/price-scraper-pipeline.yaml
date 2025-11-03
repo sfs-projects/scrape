@@ -2,25 +2,25 @@ name: price-scraper-pipeline
 
 on:
   push:
-    branches: [ main ]   # Build image only when pushing to main
+    branches: [ main ]         # Build only on push to main
   schedule:
-    - cron: "0 */8 * * *" # Run scraper every 8 hours UTC
-  workflow_dispatch:       # Allow manual triggers
+    - cron: "0 */8 * * *"       # Run scraper every 8 hours UTC
+  workflow_dispatch:             # Allow manual build or manual run
 
 jobs:
 
   build_and_push:
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3
 
-      # Enable caching for fast builds
       - name: Cache Docker layers
         uses: actions/cache@v3
         with:
@@ -45,7 +45,6 @@ jobs:
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new
 
-      # Move new cache into place
       - name: Move updated cache
         run: |
           rm -rf /tmp/.buildx-cache
