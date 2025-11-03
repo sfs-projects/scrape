@@ -16,17 +16,22 @@ from oauth2client.service_account import ServiceAccountCredentials
 from playwright.async_api import async_playwright
 import json
 
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
 # ─────────────────────────
 # ① Env
 # ─────────────────────────
-load_dotenv()
+# load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
 GOOGLE_CREDS_RAW = os.getenv("GOOGLE_CREDS")
+
+print("GOOGLE_CREDS_RAW preview:", GOOGLE_CREDS_RAW[:50])
+print("CHAT_ID preview:", CHAT_ID[:5])
+print("API_TOKEN preview:", API_TOKEN[:5])
+
 if not GOOGLE_CREDS_RAW:
     raise Exception("❌ GOOGLE_CREDS env var missing!")
 
