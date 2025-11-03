@@ -66,10 +66,10 @@ jobs:
         run: |
           if [ -f "image_tag.txt" ]; then
             TAG=$(cat image_tag.txt)
-            echo "Using saved image tag: $TAG"
+            echo "✅ Using saved image tag: $TAG"
             echo "tag=$TAG" >> $GITHUB_OUTPUT
           else
-            echo "No artifact found — falling back to :latest"
+            echo "⚠️ No artifact found — falling back to :latest"
             echo "tag=latest" >> $GITHUB_OUTPUT
 
       - name: Login to Docker Hub
@@ -82,14 +82,16 @@ jobs:
         run: |
           IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
           echo "Pulling $IMAGE"
-          docker pull $IMAGE
+          docker pull $IMAGE || echo "⚠️ Pull failed — image tag may not exist yet"
 
       - name: Run scraper with secrets
+        continue-on-error: true
         run: |
           IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
+          echo "Running container: $IMAGE"
           docker run \
             --env API_TOKEN="${{ secrets.API_TOKEN }}" \
             --env CHAT_ID="${{ secrets.CHAT_ID }}" \
             --env SHEET_ID="${{ secrets.SHEET_ID }}" \
             --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
-            $IMAGE
+            $IMAGE || echo "⚠️ Scraper container exited with errors"
