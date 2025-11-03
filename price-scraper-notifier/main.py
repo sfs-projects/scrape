@@ -12,23 +12,30 @@ import pandas as pd
 from datetime import datetime
 import random
 import os
-import ast
 from oauth2client.service_account import ServiceAccountCredentials
-import cloudscraper
 from playwright.async_api import async_playwright
+import json
 
-# from dotenv import load_dotenv
+from dotenv import load_dotenv
 
 # ─────────────────────────
 # ① Env
 # ─────────────────────────
-# load_dotenv()
+load_dotenv()
 
 API_TOKEN = os.getenv("API_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 SHEET_ID = os.getenv("SHEET_ID")
-GOOGLE_CREDS = os.getenv("GOOGLE_CREDS")
-GOOGLE_CREDS = ast.literal_eval(GOOGLE_CREDS.replace("\n", "\\n"))
+GOOGLE_CREDS_RAW = os.getenv("GOOGLE_CREDS")
+if not GOOGLE_CREDS_RAW:
+    raise Exception("❌ GOOGLE_CREDS env var missing!")
+
+# Try load JSON
+try:
+    GOOGLE_CREDS = json.loads(GOOGLE_CREDS_RAW)
+except json.JSONDecodeError:
+    # Sometimes secrets get double-escaped → fix and try again
+    GOOGLE_CREDS = json.loads(GOOGLE_CREDS_RAW.encode().decode('unicode_escape'))
 
 # ─────────────────────────
 # ② Google Sheets auth + config
@@ -457,7 +464,7 @@ def send_to_telegram(message):
             "disable_web_page_preview": "true",
         }
         r = requests.post(api_url, json=payload, timeout=10)
-        print("Telegram response:", r.status_code, r.text)
+        print("Telegram response:", r.status_code)
     except Exception as e:
         print("Telegram error:", e)
 
@@ -497,7 +504,7 @@ def process_alerts():
                 if abs(diffpc) >= THRESHOLD:
                     direction = "increased" if diff > 0 else "decreased"
                     msg = (
-                        f"[{int(diff)}] [{now.Stock}] Price {direction} to {now.Price} "
+                        f"[Δ {int(diff)}] [{now.Stock}] Price {direction} to {now.Price} "
                         f"from {prev.Price}, Δ {round(diffpc*100,2)}%. "
                         f"Min {minpr}. {now.URL}"
                     )
