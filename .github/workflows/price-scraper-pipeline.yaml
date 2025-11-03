@@ -6,12 +6,11 @@ on:
       - main
   schedule:
     - cron: "0 */8 * * *"  # every 8 hours UTC
-  workflow_dispatch:       # allow manual trigger
+  workflow_dispatch:
 
 jobs:
 
   build_and_push:
-    # only build/push image on code push
     if: github.event_name == 'push'
     name: Build and push Docker image
     runs-on: ubuntu-latest
@@ -37,14 +36,11 @@ jobs:
           push: true
           tags: |
             ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
-            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ github.run_number }}
-          # cache-from: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:cache
-          # cache-to: type=registry,ref=${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:cache,mode=max
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:build-${{ github.run_number }}
           no-cache: true
 
 
   run_scraper:
-    # run this job manually (workflow_dispatch) or on the cron schedule
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     name: Run scraper container
     runs-on: ubuntu-latest
@@ -56,8 +52,17 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Pull latest image
-        run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ github.run_number }}
+      - name: Pull latest built image
+        run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+
+      - name: Debug env value inside container
+        run: |
+          docker run \
+            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
+            ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest python3 - << 'EOF'
+import os
+print("GOOGLE_CREDS first 60 chars:", repr(os.getenv("GOOGLE_CREDS")[:60]))
+EOF
 
       - name: Run scraper with secrets
         run: |
