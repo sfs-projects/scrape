@@ -4,7 +4,8 @@ on:
   push:
     branches: [ main ]           # Build image only on push to main
   schedule:
-    - cron: "0 */8 * * *"         # Run scraper every 8 hours UTC
+    - cron: "0 8 * * *"                 # 08:00 UTC every day
+    - cron: "0 18 * * *"                # 18:00 UTC every day
   workflow_dispatch:               # Manual run triggers scraper only
 
 jobs:
@@ -119,4 +120,3 @@ jobs:
             --env SHEET_ID="$SHEET_ID" \
             --env GOOGLE_CREDS="$GOOGLE_CREDS" \
             "$IMAGE:latest"
-
