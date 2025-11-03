@@ -2,10 +2,9 @@ name: price-scraper-pipeline
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   schedule:
-    - cron: "0 */8 * * *"  # every 8 hours UTC
+    - cron: "0 */8 * * *"
   workflow_dispatch:
 
 jobs:
@@ -16,14 +15,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -35,44 +29,27 @@ jobs:
           file: ./price-scraper-notifier/Dockerfile
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
-          no-cache: true
-          pull: true
-
-  debug_secrets:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Print secrets to confirm fresh values
-        run: |
-          echo "API_TOKEN length: ${#API_TOKEN}"
-          echo "CHAT_ID length: ${#CHAT_ID}"
-          echo "SHEET_ID length: ${#SHEET_ID}"
-          echo "GOOGLE_CREDS starts with: ${GOOGLE_CREDS:0:30}"
-        env:
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          CHAT_ID: ${{ secrets.CHAT_ID }}
-          SHEET_ID: ${{ secrets.SHEET_ID }}
-          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
+          no-cache: false
+          pull: false
 
   run_scraper:
     name: Run scraper (always latest)
     runs-on: ubuntu-latest
+    needs: [ build_and_push ]
 
     steps:
-      - name: Login to Docker Hub
-        uses: docker/login-action@v3
+      - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Pull latest image (force fresh)
-        run: docker pull --quiet ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
-
+      - run: docker pull --quiet ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
 
       - name: Run scraper with secrets
         run: |
-          docker run \
-            --env API_TOKEN="${{ secrets.API_TOKEN }}" \
-            --env CHAT_ID="${{ secrets.CHAT_ID }}" \
-            --env SHEET_ID="${{ secrets.SHEET_ID }}" \
-            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
+          docker run --rm \
+            -e API_TOKEN="${{ secrets.API_TOKEN }}" \
+            -e CHAT_ID="${{ secrets.CHAT_ID }}" \
+            -e SHEET_ID="${{ secrets.SHEET_ID }}" \
+            -e GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
             ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
