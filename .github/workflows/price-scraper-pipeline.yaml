@@ -50,10 +50,11 @@ jobs:
         run: |
           IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}"
           IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          echo "Using image: $IMAGE"
 
           docker run --rm \
             -e API_TOKEN="${{ secrets.API_TOKEN }}" \
             -e CHAT_ID="${{ secrets.CHAT_ID }}" \
             -e SHEET_ID="${{ secrets.SHEET_ID }}" \
             -e GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
-            "$IMAGE":latest
+            "$IMAGE:latest"
