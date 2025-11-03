@@ -36,6 +36,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
           no-cache: true
+          pull: true
 
 
   run_scraper:
@@ -49,8 +50,9 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Pull latest image
-        run: docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+      - name: Pull latest image (force fresh)
+        run: docker pull --quiet ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:latest
+
 
       - name: Run scraper with secrets
         run: |
