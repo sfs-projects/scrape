@@ -100,14 +100,23 @@ jobs:
 
 
       - name: Run scraper with secrets
+        env:
+          USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          REPO: ${{ secrets.DOCKERHUB_REPO }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
         run: |
-          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}"
+          IMAGE="${USERNAME}/${REPO}"
           IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          echo "Running: $IMAGE:latest"
+
+          echo "Using image: $IMAGE:latest"
 
           docker run --rm \
-            --env API_TOKEN="${{ secrets.API_TOKEN }}" \
-            --env CHAT_ID="${{ secrets.CHAT_ID }}" \
-            --env SHEET_ID="${{ secrets.SHEET_ID }}" \
-            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
+            --env API_TOKEN="$API_TOKEN" \
+            --env CHAT_ID="$CHAT_ID" \
+            --env SHEET_ID="$SHEET_ID" \
+            --env GOOGLE_CREDS="$GOOGLE_CREDS" \
             "$IMAGE:latest"
+
