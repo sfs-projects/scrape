@@ -38,6 +38,20 @@ jobs:
           no-cache: true
           pull: true
 
+  debug_secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print secrets to confirm fresh values
+        run: |
+          echo "API_TOKEN length: ${#API_TOKEN}"
+          echo "CHAT_ID length: ${#CHAT_ID}"
+          echo "SHEET_ID length: ${#SHEET_ID}"
+          echo "GOOGLE_CREDS starts with: ${GOOGLE_CREDS:0:30}"
+        env:
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
 
   run_scraper:
     name: Run scraper (always latest)
