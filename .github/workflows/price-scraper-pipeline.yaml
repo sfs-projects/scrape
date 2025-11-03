@@ -49,11 +49,11 @@ jobs:
 
 
   run_scraper:
-  if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-  name: Run scraper container
-  runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    name: Run scraper container
+    runs-on: ubuntu-latest
 
-  steps:
+    steps:
       - name: Try to download last image tag artifact
         id: get_artifact
         continue-on-error: true
@@ -83,13 +83,6 @@ jobs:
           IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
           echo "Pulling $IMAGE"
           docker pull $IMAGE
-
-      - name: Debug env inside container
-        run: |
-          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}:${{ steps.pick_tag.outputs.tag }}"
-          docker run \
-            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
-            $IMAGE python3 - << 'EOF'
 
       - name: Run scraper with secrets
         run: |
