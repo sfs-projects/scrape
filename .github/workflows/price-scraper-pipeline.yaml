@@ -51,6 +51,32 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
 
+  debug_secrets:
+    name: Debug Secrets & Image Reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check secrets
+        run: |
+          echo "DOCKER_USERNAME length: ${#DOCKER_USERNAME}"
+          echo "DOCKERHUB_REPO length: ${#DOCKERHUB_REPO}"
+          echo "API_TOKEN length: ${#API_TOKEN}"
+          echo "CHAT_ID length: ${#CHAT_ID}"
+          echo "SHEET_ID length: ${#SHEET_ID}"
+          echo "GOOGLE_CREDS length: ${#GOOGLE_CREDS}"
+
+        env:
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKERHUB_REPO: ${{ secrets.DOCKERHUB_REPO }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
+          CHAT_ID: ${{ secrets.CHAT_ID }}
+          SHEET_ID: ${{ secrets.SHEET_ID }}
+          GOOGLE_CREDS: ${{ secrets.GOOGLE_CREDS }}
+
+      - name: Show IMAGE output
+        run: |
+          IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}"
+          IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE resolved to (masked): ${IMAGE:0:2}***${IMAGE: -2}"
 
   run_scraper:
     name: Run scraper
@@ -71,6 +97,7 @@ jobs:
           IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
           echo "Pulling image: $IMAGE:latest"
           docker pull "$IMAGE:latest"
+
 
       - name: Run scraper with secrets
         run: |
