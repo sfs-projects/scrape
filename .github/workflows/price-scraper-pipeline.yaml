@@ -2,17 +2,18 @@ name: price-scraper-pipeline
 
 on:
   push:
-    branches: [ main ]         # Build only on push to main
+    branches: [ main ]           # Build image only on push to main
   schedule:
-    - cron: "0 */8 * * *"       # Run scraper every 8 hours UTC
-  workflow_dispatch:             # Allow manual build or manual run
+    - cron: "0 */8 * * *"         # Run scraper every 8 hours UTC
+  workflow_dispatch:               # Manual run triggers scraper only
 
 jobs:
 
   build_and_push:
     name: Build & Push Docker Image
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    # Build ONLY on push to main
+    if: github.event_name == 'push'
 
     steps:
       - name: Checkout
@@ -54,6 +55,8 @@ jobs:
   run_scraper:
     name: Run scraper
     runs-on: ubuntu-latest
+    # Run on schedule OR manual dispatch
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
 
     steps:
       - name: Login to Docker Hub
@@ -66,18 +69,18 @@ jobs:
         run: |
           IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}"
           IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          echo "Using image: $IMAGE"
+          echo "Pulling image: $IMAGE:latest"
           docker pull "$IMAGE:latest"
 
       - name: Run scraper with secrets
         run: |
           IMAGE="${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKERHUB_REPO }}"
           IMAGE=$(echo "$IMAGE" | tr '[:upper:]' '[:lower:]')
-          echo "Running with: $IMAGE"
+          echo "Running: $IMAGE:latest"
 
           docker run --rm \
-            -e API_TOKEN="${{ secrets.API_TOKEN }}" \
-            -e CHAT_ID="${{ secrets.CHAT_ID }}" \
-            -e SHEET_ID="${{ secrets.SHEET_ID }}" \
-            -e GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
+            --env API_TOKEN="${{ secrets.API_TOKEN }}" \
+            --env CHAT_ID="${{ secrets.CHAT_ID }}" \
+            --env SHEET_ID="${{ secrets.SHEET_ID }}" \
+            --env GOOGLE_CREDS="${{ secrets.GOOGLE_CREDS }}" \
             "$IMAGE:latest"
