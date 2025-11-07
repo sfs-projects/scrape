@@ -4,8 +4,7 @@ on:
   push:
     branches: [ main ]           # Build image only on push to main
   schedule:
-    - cron: "0 6 * * *"                 # 08:00 UTC every day
-    - cron: "0 16 * * *"                # 18:00 UTC every day
+    - cron: "0 7 * * *"                 # 07:00 UTC every day
   workflow_dispatch:               # Manual run triggers scraper only
 
 jobs:
